@@ -1,0 +1,186 @@
+# Sadr's reusable workflow for one repo. A repo adopts Sadr with a short
+# workflow that calls this one on a schedule. See examples/sadr.yml.
+#
+# Sadr acts as the owner's own Sadr GitHub App (app_id and app_private_key),
+# created from app/manifest.json. It commits as "Sadr" with the App's bot
+# email and publishes Verified commits through the API. Without an App, the
+# run falls back to the workflow's GITHUB_TOKEN: it then cannot change
+# workflow files or read other repos. See references/permissions.md.
+name: Sadr run
+
+on:
+  workflow_call:
+    inputs:
+      sadr-ref:
+        description: The full commit SHA of the Sadr release, the same SHA that you call this workflow at.
+        type: string
+        required: true
+      preview:
+        description: Do the whole run but push nothing. Write the result to the job summary.
+        type: boolean
+        default: false
+      max-spend-usd:
+        description: The most that one run may spend, in US dollars, with API billing.
+        type: number
+        default: 200
+      model:
+        description: The Claude model that runs Sadr. Any model id that Claude Code accepts.
+        type: string
+        default: claude-opus-5-5
+      federation-rule-id:
+        description: An Anthropic workload identity federation rule (fdrl_...). Set it with organization-id instead of a secret.
+        type: string
+        default: ""
+      organization-id:
+        description: The Anthropic organization UUID for workload identity federation.
+        type: string
+        default: ""
+    secrets:
+      app_id:
+        description: The GitHub App's ID or client ID. Sadr's identity.
+        required: false
+      app_private_key:
+        description: The GitHub App's private key.
+        required: false
+      claude_code_oauth_token:
+        description: A Claude subscription token from `claude setup-token`.
+        required: false
+      anthropic_api_key:
+        description: An Anthropic API key, for API billing.
+        required: false
+      semgrep_app_token:
+        description: A Semgrep token with Web API and CI access.
+        required: false
+
+# One run per repo at a time. A second run waits for the first.
+concurrency:
+  group: sadr-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    # GITHUB_TOKEN does the work only in the degraded mode without an App.
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Check the inputs
+        id: mode
+        env:
+          TOKEN: ${{ secrets.claude_code_oauth_token }}
+          KEY: ${{ secrets.anthropic_api_key }}
+          FEDERATION: ${{ inputs.federation-rule-id }}
+          APP_ID: ${{ secrets.app_id }}
+          APP_KEY: ${{ secrets.app_private_key }}
+          SADR_REF: ${{ inputs.sadr-ref }}
+        run: |
+          if ! [[ "$SADR_REF" =~ ^[0-9a-f]{40}$ ]]; then echo "Set sadr-ref to a full commit SHA."; exit 1; fi
+          if [ -n "$TOKEN" ] && [ -n "$KEY" ]; then echo "Set one credential, not both."; exit 1; fi
+          if [ -z "$TOKEN" ] && [ -z "$KEY" ] && [ -z "$FEDERATION" ]; then
+            echo "Set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY."; exit 1
+          fi
+          if [ -n "$FEDERATION" ] && { [ -n "$TOKEN" ] || [ -n "$KEY" ]; }; then
+            echo "Use workload identity federation or a secret, not both."; exit 1
+          fi
+          if [ -n "$APP_ID" ] && [ -n "$APP_KEY" ]; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No GitHub App. Sadr runs in the degraded mode: no workflow-file changes and no other repos."
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch the Sadr scripts
+        env:
+          SADR_REF: ${{ inputs.sadr-ref }}
+        run: |
+          git clone --quiet --no-checkout https://github.com/Cygnus-Strategy/sadr.git "$RUNNER_TEMP/sadr"
+          git -C "$RUNNER_TEMP/sadr" checkout --quiet "$SADR_REF"
+          mkdir -p "$RUNNER_TEMP/sadr-run"
+
+      # An owner-wide read-only token, only to see which related repos the
+      # App can reach. It never reaches the Sadr session.
+      - id: discovery-token
+        if: steps.mode.outputs.app == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app_id }}
+          private-key: ${{ secrets.app_private_key }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: read
+          permission-pull-requests: read
+
+      - name: List the repo and its related repos
+        id: discover
+        env:
+          GH_TOKEN: ${{ steps.discovery-token.outputs.token || github.token }}
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          python3 "$RUNNER_TEMP/sadr/plugins/sadr/skills/sadr/scripts/repos.py" --repo "$REPO" --json > "$RUNNER_TEMP/sadr-run/repos.json"
+          # The read token covers OWNER/.github and the related repos of the same owner.
+          read_repos=$(jq -r --arg owner "$OWNER" --arg repo "$REPO" \
+            '.repos[] | select(.repo == $repo) | .related_repos[]? | select(ascii_downcase | startswith(($owner | ascii_downcase) + "/")) | split("/")[1]' \
+            "$RUNNER_TEMP/sadr-run/repos.json" | sort -u | tr '\n' ' ')
+          if gh api "repos/$OWNER/.github" --silent 2>/dev/null; then read_repos=".github $read_repos"; fi
+          echo "read-repos=$read_repos" >> "$GITHUB_OUTPUT"
+
+      - name: Mint Sadr's tokens and keep them fresh
+        id: app
+        if: steps.mode.outputs.app == 'true'
+        env:
+          APP_ID: ${{ secrets.app_id }}
+          APP_KEY: ${{ secrets.app_private_key }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
+          READ_REPOS: ${{ steps.discover.outputs.read-repos }}
+        run: |
+          # The key goes in on stdin, so that the refresh loop holds it only in memory.
+          # shellcheck disable=SC2086
+          printf '%s\n' "$APP_KEY" | env -u APP_KEY bash "$RUNNER_TEMP/sadr/.github/scripts/app-token.sh" "$APP_ID" "$OWNER" "${REPO#*/}" $READ_REPOS
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ steps.app.outputs.app-token || github.token }}
+          fetch-depth: 0
+          # With an App, the credential helper supplies fresh tokens.
+          persist-credentials: ${{ steps.mode.outputs.app != 'true' }}
+
+      - name: Use the github-actions identity in the degraded mode
+        if: steps.mode.outputs.app != 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - uses: anthropics/claude-code-action@a26b07d8c778b0c43f64618e5fd29fd0f8af72e8 # v1.0.250
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.semgrep_app_token }}
+          SADR_APP_TOKEN: ${{ steps.app.outputs.app-token }}
+          SADR_READ_TOKEN: ${{ steps.app.outputs.read-token }}
+          SADR_PREVIEW: ${{ inputs.preview }}
+          SADR_APP_SLUG: ${{ steps.app.outputs.app-slug }}
+        with:
+          # The Sadr clone at sadr-ref. The action accepts a URL only when it ends
+          # in .git, so a URL cannot carry the ref. A local path pins it exactly.
+          plugin_marketplaces: ${{ runner.temp }}/sadr
+          plugins: sadr@sadr
+          prompt: >-
+            Run the sadr skill on this repository${{ inputs.preview && ' as a preview' || '' }}.
+            The output of repos.py for this run is in ${{ runner.temp }}/sadr-run/repos.json.
+          # The run must build and test, so it needs the shell and the edit tools.
+          claude_args: >-
+            --model ${{ inputs.model }}
+            --max-budget-usd ${{ inputs.max-spend-usd }}
+            --allowedTools Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,Skill,Agent,TodoWrite
+          github_token: ${{ steps.app.outputs.app-token || github.token }}
+          bot_name: ${{ steps.app.outputs.bot-name || 'github-actions[bot]' }}
+          bot_id: ${{ steps.app.outputs.bot-id || '41898282' }}
+          claude_code_oauth_token: ${{ secrets.claude_code_oauth_token }}
+          anthropic_api_key: ${{ secrets.anthropic_api_key }}
+          anthropic_federation_rule_id: ${{ inputs.federation-rule-id }}
+          anthropic_organization_id: ${{ inputs.organization-id }}

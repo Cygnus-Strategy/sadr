@@ -1,0 +1,124 @@
+┌──────────────┐
+│ Debugging Info │
+└──────────────┘
+  Using Semgrep Pro Version: 1.181.0
+[1mWould have sent findings and ignores blob: [0m{
+    "findings": [
+        {
+            "check_id": "python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected",
+            "path": "app/fetch.py",
+            "line": 74,
+            "end_line": 74,
+            "message": "Detected a dynamic value",
+            "severity": 1,
+            "is_blocking": false,
+            "syntactic_id": "s1",
+            "match_based_id": "m1",
+            "validation_state": "NO_VALIDATOR",
+            "engine_kind": "PRO",
+            "metadata": {
+                "category": "security"
+            }
+        },
+        {
+            "check_id": "c.lang.security.insecure-use-strcat-fn",
+            "path": "main.c",
+            "line": 137,
+            "end_line": 137,
+            "message": "strcat",
+            "severity": 2,
+            "is_blocking": true,
+            "syntactic_id": "s2",
+            "match_based_id": "m2",
+            "validation_state": "NO_VALIDATOR",
+            "metadata": {}
+        },
+        {
+            "check_id": "ssc-0f3a",
+            "path": "package-lock.json",
+            "line": 120,
+            "end_line": 120,
+            "message": "follow-redirects leaks headers",
+            "severity": 2,
+            "is_blocking": false,
+            "syntactic_id": "s3",
+            "match_based_id": "m3",
+            "metadata": {
+                "sca-vuln-database-identifier": "GHSA-cxjh-pqwp-8mfp",
+                "cve": "CVE-2024-28849",
+                "sca-fix-versions": [
+                    {
+                        "follow-redirects": "1.15.6"
+                    }
+                ],
+                "product": "supply-chain"
+            },
+            "sca_info": {
+                "reachable": false,
+                "dependency_match": {
+                    "lockfile": "package-lock.json",
+                    "found_dependency": {
+                        "package": "follow-redirects",
+                        "version": "1.15.5",
+                        "ecosystem": "npm"
+                    }
+                }
+            }
+        },
+        {
+            "check_id": "generic.secrets.gitleaks.github-pat",
+            "path": "ci/deploy.sh",
+            "line": 3,
+            "end_line": 3,
+            "message": "token",
+            "severity": 3,
+            "is_blocking": true,
+            "syntactic_id": "s4",
+            "match_based_id": "m4",
+            "validation_state": "CONFIRMED_INVALID",
+            "metadata": {
+                "product": "secrets"
+            }
+        }
+    ],
+    "ignores": [
+        {
+            "check_id": "html.security.plaintext-http-link.plaintext-http-link",
+            "path": "index.html",
+            "line": 9,
+            "end_line": 9,
+            "message": "http",
+            "severity": 1,
+            "is_blocking": false,
+            "syntactic_id": "s5",
+            "match_based_id": "m5",
+            "validation_state": "NO_VALIDATOR",
+            "metadata": {}
+        }
+    ],
+    "token": null,
+    "searched_paths": [
+        "app/fetch.py",
+        "main.c"
+    ],
+    "rule_ids": [],
+    "dependencies": {}
+}
+Would have sent complete blob: {
+    "exit_code": 0,
+    "stats": {
+        "findings": 4,
+        "errors": [],
+        "findings_by_product": {
+            "code": 2,
+            "supply-chain": 1
+        }
+    },
+    "dependencies": {}
+}
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ CI scan completed successfully.
+ • Findings: 2 (2 blocking)
+CI scan completed successfully.

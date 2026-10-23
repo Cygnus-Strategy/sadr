@@ -1,0 +1,296 @@
+# Sadr's reusable workflow for a whole organization or user account. The
+# owner calls it from its .github repo. See examples/sadr-org.yml.
+#
+# 1. discover lists the repos in scope with repos.py.
+# 2. sadr runs one job per repo, at most max-parallel at a time.
+# 3. report writes the report to the job summary with report.py.
+#
+# The owner's own Sadr GitHub App, created from app/manifest.json and
+# installed on the owner, is Sadr's identity. Each repo's job
+# gets a write token for that repo only, and a read-only token for
+# OWNER/.github and the related repos that the repo's AGENTS.md declares.
+# See references/permissions.md.
+name: Sadr org run
+
+on:
+  workflow_call:
+    inputs:
+      sadr-ref:
+        description: The full commit SHA of the Sadr release, the same SHA that you call this workflow at.
+        type: string
+        required: true
+      preview:
+        description: Do the whole run but push nothing. Write each result to the job summary.
+        type: boolean
+        default: false
+      max-spend-usd:
+        description: The most that one repo's run may spend, in US dollars, with API billing.
+        type: number
+        default: 200
+      model:
+        description: The Claude model that runs Sadr. Any model id that Claude Code accepts.
+        type: string
+        default: claude-opus-5-5
+      max-parallel:
+        description: The most repos that run at the same time.
+        type: number
+        default: 4
+      federation-rule-id:
+        description: An Anthropic workload identity federation rule (fdrl_...). Set it with organization-id instead of a secret.
+        type: string
+        default: ""
+      organization-id:
+        description: The Anthropic organization UUID for workload identity federation.
+        type: string
+        default: ""
+      owner:
+        description: The organization or user account to run on. The App must be installed there. Empty means the owner of the calling repo.
+        type: string
+        default: ""
+      repos:
+        description: Run only on these repos of the owner, by name, separated by spaces or commas. Empty means every repo.
+        type: string
+        default: ""
+    secrets:
+      app_id:
+        description: The GitHub App's ID or client ID. Sadr's identity.
+        required: true
+      app_private_key:
+        description: The GitHub App's private key.
+        required: true
+      claude_code_oauth_token:
+        description: A Claude subscription token from `claude setup-token`.
+        required: false
+      anthropic_api_key:
+        description: An Anthropic API key, for API billing.
+        required: false
+      semgrep_app_token:
+        description: A Semgrep token with Web API and CI access.
+        required: false
+
+permissions: {}
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      repos: ${{ steps.list.outputs.repos }}
+      count: ${{ steps.list.outputs.count }}
+      discovery: ${{ steps.list.outputs.discovery }}
+      flag: ${{ steps.list.outputs.flag }}
+    steps:
+      - name: Check the inputs
+        env:
+          TOKEN: ${{ secrets.claude_code_oauth_token }}
+          KEY: ${{ secrets.anthropic_api_key }}
+          FEDERATION: ${{ inputs.federation-rule-id }}
+          SADR_REF: ${{ inputs.sadr-ref }}
+        run: |
+          if ! [[ "$SADR_REF" =~ ^[0-9a-f]{40}$ ]]; then echo "Set sadr-ref to a full commit SHA."; exit 1; fi
+          if [ -n "$TOKEN" ] && [ -n "$KEY" ]; then echo "Set one credential, not both."; exit 1; fi
+          if [ -z "$TOKEN" ] && [ -z "$KEY" ] && [ -z "$FEDERATION" ]; then
+            echo "Set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY."; exit 1
+          fi
+          if [ -n "$FEDERATION" ] && { [ -n "$TOKEN" ] || [ -n "$KEY" ]; }; then
+            echo "Use workload identity federation or a secret, not both."; exit 1
+          fi
+
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app_id }}
+          private-key: ${{ secrets.app_private_key }}
+          owner: ${{ inputs.owner || github.repository_owner }}
+          permission-contents: read
+          permission-pull-requests: read
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Cygnus-Strategy/sadr
+          ref: ${{ inputs.sadr-ref }}
+          persist-credentials: false
+
+      - id: list
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          REPOS: ${{ inputs.repos }}
+          OWNER: ${{ inputs.owner || github.repository_owner }}
+        run: |
+          # GitHub search and the scripts tell organizations and users apart.
+          if [ "$(gh api "users/$OWNER" --jq .type)" = Organization ]; then FLAG=--org; else FLAG=--user; fi
+          echo "flag=$FLAG" >> "$GITHUB_OUTPUT"
+          if [ -n "$REPOS" ]; then
+            scope=()
+            for name in ${REPOS//,/ }; do scope+=(--repo "$OWNER/$name"); done
+          else
+            scope=("$FLAG" "$OWNER")
+          fi
+          python3 plugins/sadr/skills/sadr/scripts/repos.py "${scope[@]}" --json > "$RUNNER_TEMP/repos.json"
+          # Opted-out repos get no job. The report lists them.
+          echo "repos=$(jq -c '[.repos[] | select(.opted_out | not) | .repo]' "$RUNNER_TEMP/repos.json")" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq '[.repos[] | select(.opted_out | not)] | length' "$RUNNER_TEMP/repos.json")" >> "$GITHUB_OUTPUT"
+          echo "discovery=$(jq -c . "$RUNNER_TEMP/repos.json")" >> "$GITHUB_OUTPUT"
+
+  sadr:
+    needs: discover
+    if: needs.discover.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      # Reads Sadr itself. The App token does the GitHub work.
+      contents: read
+      # Only workload identity federation uses this.
+      id-token: write
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix:
+        repo: ${{ fromJSON(needs.discover.outputs.repos) }}
+    # One run per repo at a time, also across org runs and per-repo runs.
+    concurrency:
+      group: sadr-${{ matrix.repo }}
+      cancel-in-progress: false
+    steps:
+      # The calling repo's own token reads Sadr. That works when Sadr is public,
+      # or when the calling repo is Sadr itself.
+      - name: Fetch the Sadr scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Cygnus-Strategy/sadr
+          ref: ${{ inputs.sadr-ref }}
+          path: sadr-plugin
+          persist-credentials: false
+
+      - name: Move the Sadr scripts out of the workspace
+        run: |
+          mv "$GITHUB_WORKSPACE/sadr-plugin" "$RUNNER_TEMP/sadr"
+          mkdir -p "$RUNNER_TEMP/sadr-run"
+
+      # Owner-wide and read-only, only to check that OWNER/.github exists.
+      # It never reaches the Sadr session.
+      - id: discovery-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app_id }}
+          private-key: ${{ secrets.app_private_key }}
+          owner: ${{ inputs.owner || github.repository_owner }}
+          permission-contents: read
+
+      - name: Pick this repo's related repos
+        id: related
+        env:
+          GH_TOKEN: ${{ steps.discovery-token.outputs.token }}
+          DISCOVERY: ${{ needs.discover.outputs.discovery }}
+          REPO: ${{ matrix.repo }}
+          OWNER: ${{ inputs.owner || github.repository_owner }}
+        run: |
+          printf '%s' "$DISCOVERY" | jq --arg repo "$REPO" '{repos: [.repos[] | select(.repo == $repo)]}' > "$RUNNER_TEMP/sadr-run/repos.json"
+          # The read token covers OWNER/.github and the related repos of the same owner.
+          read_repos=$(jq -r --arg owner "$OWNER" \
+            '.repos[0].related_repos[]? | select(ascii_downcase | startswith(($owner | ascii_downcase) + "/")) | split("/")[1]' \
+            "$RUNNER_TEMP/sadr-run/repos.json" | sort -u | tr '\n' ' ')
+          if gh api "repos/$OWNER/.github" --silent 2>/dev/null; then read_repos=".github $read_repos"; fi
+          echo "read-repos=$read_repos" >> "$GITHUB_OUTPUT"
+          echo "slug=${REPO/\//__}" >> "$GITHUB_OUTPUT"
+
+      - name: Mint Sadr's tokens and keep them fresh
+        id: app
+        env:
+          APP_ID: ${{ secrets.app_id }}
+          APP_KEY: ${{ secrets.app_private_key }}
+          OWNER: ${{ inputs.owner || github.repository_owner }}
+          REPO: ${{ matrix.repo }}
+          READ_REPOS: ${{ steps.related.outputs.read-repos }}
+        run: |
+          # The key goes in on stdin, so that the refresh loop holds it only in memory.
+          # shellcheck disable=SC2086
+          printf '%s\n' "$APP_KEY" | env -u APP_KEY bash "$RUNNER_TEMP/sadr/.github/scripts/app-token.sh" "$APP_ID" "$OWNER" "${REPO#*/}" $READ_REPOS
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ matrix.repo }}
+          token: ${{ steps.app.outputs.app-token }}
+          fetch-depth: 0
+          # The credential helper supplies fresh tokens.
+          persist-credentials: false
+
+      - uses: anthropics/claude-code-action@a26b07d8c778b0c43f64618e5fd29fd0f8af72e8 # v1.0.250
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.semgrep_app_token }}
+          SADR_APP_TOKEN: ${{ steps.app.outputs.app-token }}
+          SADR_READ_TOKEN: ${{ steps.app.outputs.read-token }}
+          SADR_PREVIEW: ${{ inputs.preview }}
+          SADR_APP_SLUG: ${{ steps.app.outputs.app-slug }}
+        with:
+          # The Sadr clone at sadr-ref. The action accepts a URL only when it ends
+          # in .git, so a URL cannot carry the ref. A local path pins it exactly.
+          plugin_marketplaces: ${{ runner.temp }}/sadr
+          plugins: sadr@sadr
+          prompt: >-
+            Run the sadr skill on the repository ${{ matrix.repo }}${{ inputs.preview && ' as a preview' || '' }}.
+            The output of repos.py for this run is in ${{ runner.temp }}/sadr-run/repos.json.
+          claude_args: >-
+            --model ${{ inputs.model }}
+            --max-budget-usd ${{ inputs.max-spend-usd }}
+            --allowedTools Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,Skill,Agent,TodoWrite
+          github_token: ${{ steps.app.outputs.app-token }}
+          bot_name: ${{ steps.app.outputs.bot-name }}
+          bot_id: ${{ steps.app.outputs.bot-id }}
+          claude_code_oauth_token: ${{ secrets.claude_code_oauth_token }}
+          anthropic_api_key: ${{ secrets.anthropic_api_key }}
+          anthropic_federation_rule_id: ${{ inputs.federation-rule-id }}
+          anthropic_organization_id: ${{ inputs.organization-id }}
+
+      # In preview, the report job reads the PR bodies that each job wrote.
+      - if: always() && inputs.preview
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sadr-preview-${{ steps.related.outputs.slug }}
+          path: ${{ runner.temp }}/sadr-preview
+          if-no-files-found: ignore
+          retention-days: 7
+
+  report:
+    needs: [discover, sadr]
+    if: always() && needs.discover.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.app_id }}
+          private-key: ${{ secrets.app_private_key }}
+          owner: ${{ inputs.owner || github.repository_owner }}
+          permission-contents: read
+          permission-pull-requests: read
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Cygnus-Strategy/sadr
+          ref: ${{ inputs.sadr-ref }}
+          persist-credentials: false
+
+      - if: inputs.preview
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: sadr-preview-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/sadr-preview
+
+      - env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          OWNER: ${{ inputs.owner || github.repository_owner }}
+          DISCOVERY: ${{ needs.discover.outputs.discovery }}
+          FLAG: ${{ needs.discover.outputs.flag }}
+          PREVIEW: ${{ inputs.preview }}
+        run: |
+          printf '%s' "$DISCOVERY" > "$RUNNER_TEMP/repos.json"
+          bodies=()
+          if [ "$PREVIEW" = true ] && [ -d "$RUNNER_TEMP/sadr-preview" ]; then bodies=(--bodies "$RUNNER_TEMP/sadr-preview"); fi
+          python3 plugins/sadr/skills/sadr/scripts/report.py "$FLAG" "$OWNER" --repos "$RUNNER_TEMP/repos.json" "${bodies[@]}" --format md >> "$GITHUB_STEP_SUMMARY"

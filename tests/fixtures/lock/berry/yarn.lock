@@ -1,0 +1,16 @@
+__metadata:
+  version: 8
+  cacheKey: 10c0
+
+"app@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "app@workspace:."
+  languageName: unknown
+
+"lodash@npm:^4.17.21":
+  version: 4.17.21
+  resolution: "lodash@npm:4.17.21"
+
+"left-pad@https://example.com/left-pad.tgz":
+  version: 1.3.0
+  resolution: "left-pad@https://example.com/left-pad.tgz"

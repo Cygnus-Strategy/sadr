@@ -1,0 +1,118 @@
+[
+ {
+  "number": 41,
+  "title": "sadr: upkeep 2026-10-21",
+  "html_url": "https://github.com/acme/app/pull/41",
+  "updated_at": "2026-10-21T11:00:00Z",
+  "head": {
+   "ref": "sadr/upkeep",
+   "repo": {
+    "full_name": "acme/app"
+   }
+  }
+ },
+ {
+  "number": 43,
+  "title": "sadr: #12 Add CSV export",
+  "html_url": "https://github.com/acme/app/pull/43",
+  "updated_at": "2026-10-21T12:00:00Z",
+  "head": {
+   "ref": "sadr/issue-12",
+   "repo": {
+    "full_name": "acme/app"
+   }
+  }
+ },
+ {
+  "number": 44,
+  "title": "sadr: upkeep 2026-10-21",
+  "html_url": "https://github.com/acme/app/pull/44",
+  "updated_at": "2026-10-21T12:00:00Z",
+  "head": {
+   "ref": "sadr/upkeep",
+   "repo": {
+    "full_name": "mallory/app"
+   }
+  }
+ },
+ {
+  "number": 45,
+  "title": "Fix typo",
+  "html_url": "https://github.com/acme/app/pull/45",
+  "updated_at": "2026-10-21T12:00:00Z",
+  "head": {
+   "ref": "typo",
+   "repo": {
+    "full_name": "acme/app"
+   }
+  }
+ },
+ {
+  "number": 46,
+  "html_url": "https://github.com/acme/app/pull/46",
+  "title": "factory: weekly upgrades 2026-10-22",
+  "updated_at": "2026-10-22T00:00:00Z",
+  "created_at": "2026-10-22T00:00:00Z",
+  "user": {
+   "login": "maint",
+   "type": "User"
+  },
+  "head": {
+   "ref": "factory/2026-10-22",
+   "repo": {
+    "full_name": "acme/app"
+   }
+  }
+ },
+ {
+  "number": 47,
+  "html_url": "https://github.com/acme/app/pull/47",
+  "title": "Bump vite",
+  "updated_at": "2026-10-22T00:00:00Z",
+  "created_at": "2026-10-22T00:00:00Z",
+  "user": {
+   "login": "dependabot[bot]",
+   "type": "Bot"
+  },
+  "head": {
+   "ref": "dependabot/npm_and_yarn/vite-7.1.0",
+   "repo": {
+    "full_name": "acme/app"
+   }
+  }
+ },
+ {
+  "number": 48,
+  "html_url": "https://github.com/acme/app/pull/48",
+  "title": "Fix README link",
+  "updated_at": "2026-10-22T00:00:00Z",
+  "created_at": "2026-10-22T00:00:00Z",
+  "user": {
+   "login": "renovate[bot]",
+   "type": "Bot"
+  },
+  "head": {
+   "ref": "fix-readme",
+   "repo": {
+    "full_name": "acme/app"
+   }
+  }
+ },
+ {
+  "number": 49,
+  "html_url": "https://github.com/acme/app/pull/49",
+  "title": "sadr: #272 Calendar",
+  "updated_at": "2026-10-22T00:00:00Z",
+  "created_at": "2026-10-22T00:00:00Z",
+  "user": {
+   "login": "sadr[bot]",
+   "type": "Bot"
+  },
+  "head": {
+   "ref": "sadr/issue-272-calendar",
+   "repo": {
+    "full_name": "acme/app"
+   }
+  }
+ }
+]

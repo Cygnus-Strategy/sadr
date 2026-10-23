@@ -1,0 +1,7 @@
+[
+  {"ref": "refs/heads/sadr/upkeep", "timestamp": "2026-10-22T11:40:00Z", "activity_type": "push", "actor": {"login": "sadr[bot]"}},
+  {"ref": "refs/heads/sadr/upkeep", "timestamp": "2026-10-22T09:00:00Z", "activity_type": "push", "actor": {"login": "sadr[bot]"}},
+  {"ref": "refs/heads/sadr/issue-12", "timestamp": "2026-10-22T10:30:00Z", "activity_type": "push", "actor": {"login": "sadr[bot]"}},
+  {"ref": "refs/heads/main", "timestamp": "2026-10-22T11:55:00Z", "activity_type": "push", "actor": {"login": "dev"}},
+  {"ref": "refs/heads/sadr/old", "timestamp": "2026-10-22T11:50:00Z", "activity_type": "branch_deletion", "actor": {"login": "dev"}}
+]

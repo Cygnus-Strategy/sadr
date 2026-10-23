@@ -1,0 +1,16 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "app",
+      "dependencies": {
+        "hono": "^4.9.0",
+      },
+    },
+  },
+  "packages": {
+    "hono": ["hono@4.9.0", "", {}, "sha512-a"],
+    "@types/bun": ["@types/bun@1.2.20", "", { "dependencies": { "bun-types": "1.2.20" } }, "sha512-b"],
+    "lib": ["lib@workspace:packages/lib"],
+  }
+}

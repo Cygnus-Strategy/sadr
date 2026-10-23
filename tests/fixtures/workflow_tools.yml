@@ -1,0 +1,40 @@
+name: Tools
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: node:24.11.0-slim
+    services:
+      kosync:
+        image: koreader/kosync:latest
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v6.0.0
+        with:
+          python-version: "3.15.0"
+          check-latest: true
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v7.1.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version-file: .python-version
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version: 1.25.x
+      - run: npx wrangler@4.151.0 deploy && npx --yes eslint@latest .
+      - run: |
+          uvx ruff check .
+          uvx --from 'semgrep==1.181.0' semgrep ci
+          pipx run black@24 --check .
+          npx tsc --noEmit
+  other:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/acme/builder:2.0.0
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.0

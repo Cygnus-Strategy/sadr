@@ -1,0 +1,5 @@
+{"projects": [
+ {"id": 6673126, "name": "acme/app", "url": "https://github.com/acme/app", "created_at": "2026-09-24T18:46:20.080210Z", "latest_scan_at": "2026-10-22 17:57:12.972886", "primary_branch": "refs/heads/main", "default_branch": "refs/heads/main", "tags": []},
+ {"id": 6673133, "name": "acme/lib", "url": "https://github.com/acme/lib", "created_at": "2026-09-24T18:46:20.080509Z", "latest_scan_at": "2026-10-19 19:14:43.179992", "primary_branch": "refs/heads/develop", "default_branch": "refs/heads/develop", "tags": ["managed-scan"]},
+ {"id": 6673140, "name": "acme/quiet", "url": "https://github.com/acme/quiet", "created_at": "2026-09-24T18:46:20.080509Z", "latest_scan_at": "2026-10-21 21:46:09.560498", "primary_branch": "refs/heads/main", "default_branch": "refs/heads/main", "tags": []}
+]}

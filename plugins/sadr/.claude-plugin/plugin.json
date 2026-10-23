@@ -1,0 +1,19 @@
+{
+  "name": "sadr",
+  "version": "1.0.0",
+  "description": "Sadr is a dark factory for software: it keeps every repo current, secure and up to your standards, and builds the features in your issues.",
+  "author": {
+    "name": "Cygnus Strategy LLC",
+    "url": "https://cygnusstrategy.com"
+  },
+  "homepage": "https://sadr.cygnusstrategy.com",
+  "repository": "https://github.com/Cygnus-Strategy/sadr",
+  "license": "BSD-3-Clause",
+  "keywords": [
+    "dependencies",
+    "supply-chain",
+    "security",
+    "upkeep",
+    "agents-md"
+  ]
+}

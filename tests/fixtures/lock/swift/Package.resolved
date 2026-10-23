@@ -1,0 +1,14 @@
+{
+  "originHash" : "x",
+  "pins" : [
+    {"identity" : "swift-asn1", "kind" : "remoteSourceControl", "location" : "https://github.com/apple/swift-asn1.git",
+     "state" : {"revision" : "3b6410f7dee09eb33cdd26260c5fd47fda19b0e2", "version" : "1.7.3"}},
+    {"identity" : "swift-clocks", "kind" : "remoteSourceControl", "location" : "https://github.com/pointfreeco/swift-clocks",
+     "state" : {"revision" : "82440fa0a8b1c381a6d1e8e0fc7bbba53ec63204", "version" : "1.1.1"}},
+    {"identity" : "edge", "kind" : "remoteSourceControl", "location" : "https://github.com/acme/edge.git",
+     "state" : {"branch" : "main", "revision" : "aaaaaaaaaaaa"}},
+    {"identity" : "gitlab-pkg", "kind" : "remoteSourceControl", "location" : "https://gitlab.com/acme/pkg.git",
+     "state" : {"revision" : "bbbb", "version" : "2.0.0"}}
+  ],
+  "version" : 3
+}

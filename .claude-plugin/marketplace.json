@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "sadr",
+  "description": "Sadr: build in the dark.",
+  "owner": {
+    "name": "Cygnus Strategy LLC",
+    "url": "https://cygnusstrategy.com"
+  },
+  "plugins": [
+    {
+      "name": "sadr",
+      "description": "Sadr is a dark factory for software: it keeps every repo current, secure and up to your standards, and builds the features in your issues.",
+      "source": "./plugins/sadr",
+      "category": "development",
+      "homepage": "https://sadr.cygnusstrategy.com"
+    }
+  ]
+}

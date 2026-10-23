@@ -1,0 +1,17 @@
+name: CI
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@v7
+      - uses: "actions/cache@1111111111111111111111111111111111111111" # v5.0.0
+      - uses: actions/upload-artifact@2222222222222222222222222222222222222222
+      - uses: github/codeql-action/init@3333333333333333333333333333333333333333 # v4.1.0
+      - uses: actions/fresh@4444444444444444444444444444444444444444 # v1.2.0
+      - uses: actions/moving@5555555555555555555555555555555555555555 # v3
+      - uses: ./.github/actions/local
+      - uses: docker://alpine:3.22
+  reuse:
+    uses: acme/shared/.github/workflows/build.yml@6666666666666666666666666666666666666666 # v2.0.0

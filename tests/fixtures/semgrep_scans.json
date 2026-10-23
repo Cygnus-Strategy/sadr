@@ -1,0 +1,5 @@
+{"scans": [
+ {"id": "252029326", "deployment_id": "115069", "repository_id": "6673126", "branch": "refs/heads/main", "commit": "02895246b5074d3b69321be715ceaf57a91f409f", "started_at": "2026-10-21T15:08:44.937281Z", "completed_at": "2026-10-21T15:10:20.300406Z", "exit_code": "0", "is_full_scan": true, "status": "SCAN_STATUS_COMPLETED", "enabled_products": ["sca", "sast"], "is_partial_scan": false},
+ {"id": "252156681", "deployment_id": "115069", "repository_id": "6673126", "branch": "refs/heads/main", "commit": "2604144cbe6e79f60548484ef5855baeaa5f33f2", "started_at": "2026-10-22T17:48:29.513718Z", "completed_at": "2026-10-22T17:50:23.893134Z", "exit_code": "0", "is_full_scan": true, "status": "SCAN_STATUS_COMPLETED", "enabled_products": ["sast", "sca"], "is_partial_scan": false},
+ {"id": "252160000", "deployment_id": "115069", "repository_id": "6673126", "branch": "refs/heads/main", "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "started_at": "2026-10-22T18:00:00.000000Z", "status": "SCAN_STATUS_RUNNING", "enabled_products": ["sast", "sca"], "is_partial_scan": false}
+], "cursor": "gAAAA"}

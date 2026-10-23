@@ -1,0 +1,42 @@
+# Cygnus Strategy's own Sadr run, from the Sadr repo itself. It runs this
+# commit of Sadr on an owner the sadrbot App is installed on. Adopters use
+# examples/sadr-org.yml instead.
+name: Sadr
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: The organization or user account to run on.
+        type: string
+        default: Cygnus-Strategy
+      repos:
+        description: Only these repos, by name, separated by spaces. Empty means every repo.
+        type: string
+        default: ""
+      preview:
+        description: Do the whole run but push nothing.
+        type: boolean
+        default: true
+
+# The App token does the writing. This repo's own token only reads Sadr.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sadr:
+    uses: ./.github/workflows/org.yml
+    with:
+      sadr-ref: ${{ github.sha }}
+      owner: ${{ inputs.owner }}
+      repos: ${{ inputs.repos }}
+      preview: ${{ inputs.preview }}
+      model: claude-opus-5-5
+      max-spend-usd: 200
+      max-parallel: 4
+    secrets:
+      app_id: ${{ secrets.SADR_APP_ID }}
+      app_private_key: ${{ secrets.SADR_APP_PRIVATE_KEY }}
+      claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      semgrep_app_token: ${{ secrets.SEMGREP_APP_TOKEN }}

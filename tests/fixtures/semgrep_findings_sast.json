@@ -1,0 +1,8 @@
+{"findings": [
+  {"id": 1234, "repository": {"name": "acme/app"}, "severity": "high", "status": "open", "triage_state": "untriaged",
+   "rule_name": "python.lang.security.subprocess-shell-true", "location": {"file_path": "tasks.py", "line": 88}},
+  {"id": 1240, "repository": {"name": "acme/app"}, "severity": "medium", "status": "open", "triage_state": "ignored",
+   "rule_name": "python.lang.security.eval", "location": {"file_path": "calc.py", "line": 4}},
+  {"id": 1241, "repository": {"name": "acme/lib"}, "severity": "low", "status": "open", "triage_state": "reopened",
+   "rule": {"name": "js.xss"}, "location": {"file_path": "view.js", "line": 9}}
+]}

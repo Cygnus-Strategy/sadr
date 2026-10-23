@@ -1,0 +1,5 @@
+github.com/BurntSushi/toml v1.5.0 h1:a=
+github.com/BurntSushi/toml v1.5.0/go.mod h1:b=
+golang.org/x/sys v0.30.0/go.mod h1:c=
+modernc.org/libc v1.79.0 h1:9Dvvv++bAMSkSuBzuOFAatbTV5OIoq6Y6FohmD3e7q8=
+modernc.org/libc v1.79.0/go.mod h1:uT3kR61NsbeKJSLqq83GJwSnZMVLlSjyAz4DfTaBy1M=

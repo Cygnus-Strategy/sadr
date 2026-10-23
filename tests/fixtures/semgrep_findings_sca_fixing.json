@@ -1,0 +1,10 @@
+{"findings": [{
+ "id": 1032518627, "ref": "refs/heads/main", "repository": {"name": "acme/app", "url": "https://github.com/acme/app"},
+ "state": "unresolved", "triage_state": "fixing", "status": "fixing", "confidence": "high",
+ "rule_name": "ssc-5df0a6b6-da47-4290-9f7c-28111c57478b",
+ "location": {"file_path": "uv.lock", "line": 53, "column": 1, "end_line": 53, "end_column": 1},
+ "triage_comment": "Fixed in https://github.com/acme/app/pull/21: certifi 2026.10.18 -> 2026.10.19",
+ "severity": "critical", "vulnerability_identifier": "GHSA-6q48-6c7w-9gw2", "reachability": "always reachable",
+ "found_dependency": {"package": "certifi", "version": "2026.10.18", "ecosystem": "pypi", "transitivity": "transitive"},
+ "fix_recommendations": [{"package": "certifi", "version": "2026.10.19"}]
+}]}

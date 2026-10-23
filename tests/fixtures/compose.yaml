@@ -1,0 +1,7 @@
+services:
+  app:
+    image: "ghcr.io/acme/app:1.2.3@sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  db:
+    image: postgres:18  # the database
+  cache:
+    image: ${CACHE_IMAGE:-redis:8}

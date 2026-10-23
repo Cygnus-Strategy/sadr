@@ -1,0 +1,47 @@
+# Copy this file to .github/workflows/sadr.yml in the repo that adopts Sadr.
+# Replace SHA, in both places, with the full commit SHA of the Sadr release
+# in the comment. Sadr's upkeep PR moves both to newer releases after the
+# cooldown.
+#
+# Sadr acts as your own copy of the Sadr GitHub App. Create it from
+# app/manifest.json as app/README.md says, install it on this repo, on the
+# owner's .github repo, and on each repo that this repo's AGENTS.md lists
+# under "### Related repos". Store its ID and private key as the
+# SADR_APP_ID and SADR_APP_PRIVATE_KEY secrets. Without an App, Sadr runs
+# in a degraded mode: it cannot change workflow files or read other repos.
+name: Sadr
+
+on:
+  schedule: [{cron: "17 3 * * *"}]   # any cadence: this one is nightly
+  workflow_dispatch:
+    inputs:
+      preview: {type: boolean, default: false}
+
+# The App token does the GitHub work. GITHUB_TOKEN writes only in the
+# degraded mode, but the reusable workflow asks for these either way.
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  # Only workload identity federation uses this.
+  id-token: write
+
+jobs:
+  sadr:
+    uses: Cygnus-Strategy/sadr/.github/workflows/run.yml@SHA # v1.0.0
+    with:
+      sadr-ref: SHA
+      preview: ${{ inputs.preview || false }}
+      # The Claude model for the run. The workflow picks it before Sadr reads
+      # AGENTS.md, so it is set here and not in Settings.
+      model: claude-opus-5-5
+      max-spend-usd: 200
+    secrets:
+      app_id: ${{ secrets.SADR_APP_ID }}
+      app_private_key: ${{ secrets.SADR_APP_PRIVATE_KEY }}
+      # Set one: a subscription token (`claude setup-token`) or an API key.
+      # For workload identity federation, set the federation-rule-id and
+      # organization-id inputs under `with:` instead.
+      claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+      semgrep_app_token: ${{ secrets.SEMGREP_APP_TOKEN }}

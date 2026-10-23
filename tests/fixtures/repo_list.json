@@ -1,0 +1,7 @@
+[
+  {"nameWithOwner": "acme/app", "isFork": false, "isArchived": false, "isEmpty": false, "defaultBranchRef": {"name": "main"}, "pushedAt": "2026-10-21T10:00:00Z"},
+  {"nameWithOwner": "acme/lib", "isFork": false, "isArchived": false, "isEmpty": false, "defaultBranchRef": {"name": "trunk"}, "pushedAt": "2026-10-20T10:00:00Z"},
+  {"nameWithOwner": "acme/forked", "isFork": true, "isArchived": false, "isEmpty": false, "defaultBranchRef": {"name": "main"}, "pushedAt": "2026-10-01T10:00:00Z"},
+  {"nameWithOwner": "acme/old", "isFork": false, "isArchived": true, "isEmpty": false, "defaultBranchRef": {"name": "main"}, "pushedAt": "2025-01-01T10:00:00Z"},
+  {"nameWithOwner": "acme/blank", "isFork": false, "isArchived": false, "isEmpty": true, "defaultBranchRef": null, "pushedAt": null}
+]

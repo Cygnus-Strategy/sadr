@@ -1,0 +1,20 @@
+{
+  "name": "Sadr for OWNER",
+  "url": "https://sadr.cygnusstrategy.com",
+  "description": "Sadr, a dark factory for software. This App is only Sadr's identity: it commits, opens pull requests and comments for the Sadr workflows and plugin.",
+  "hook_attributes": {
+    "url": "https://sadr.cygnusstrategy.com",
+    "active": false
+  },
+  "public": true,
+  "default_permissions": {
+    "contents": "write",
+    "pull_requests": "write",
+    "issues": "write",
+    "workflows": "write",
+    "checks": "read",
+    "statuses": "read",
+    "metadata": "read"
+  },
+  "default_events": []
+}

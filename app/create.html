@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create your Sadr App</title>
+<style>
+  :root { --bg: #e9e7e2; --fg: #15191f; --muted: #555b63; --line: #c9c6bf; --accent: #15191f; --accent-fg: #e9e7e2; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15191f; --fg: #e9e7e2; --muted: #a3a7ad; --line: #2c323b; --accent: #e9e7e2; --accent-fg: #15191f; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: 0 0 8px; }
+  p, li { color: var(--muted); }
+  label { display: block; margin: 20px 0 6px; font-weight: 600; }
+  input[type=text] { width: 100%; padding: 10px 12px; font: inherit; color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 6px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .row label { font-weight: 400; margin: 0; }
+  button { margin-top: 24px; padding: 10px 18px; font: inherit; font-weight: 600; color: var(--accent-fg); background: var(--accent); border: 0; border-radius: 6px; cursor: pointer; }
+  pre { overflow-x: auto; padding: 12px; border: 1px solid var(--line); border-radius: 6px; font-size: 0.85rem; white-space: pre; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  [hidden] { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Create your Sadr App</h1>
+  <p>This page sends Sadr's App manifest to GitHub. GitHub then shows the App it will create, with exactly the permissions in <code>app/manifest.json</code>. You own the App and its private key. Nobody else holds a key to it.</p>
+
+  <form id="create">
+    <label>Owner type</label>
+    <div class="row">
+      <label><input type="radio" name="kind" value="org" checked> Organization</label>
+      <label><input type="radio" name="kind" value="user"> Personal account</label>
+    </div>
+    <div id="org-field">
+      <label for="org">Organization</label>
+      <input id="org" type="text" placeholder="your-org" autocomplete="off" spellcheck="false">
+    </div>
+    <label for="name">App name</label>
+    <input id="name" type="text" value="" placeholder="Sadr for your-org" autocomplete="off" spellcheck="false">
+    <p>App names are unique across GitHub, and "Sadr" is reserved. Leave this empty to use "Sadr for" and your account name, or pick another free name. Sadr's commits still carry the author name Sadr.</p>
+    <button type="submit">Create the App on GitHub</button>
+  </form>
+
+  <section id="done" hidden>
+    <h2>Finish the setup</h2>
+    <p>GitHub created the App and returned a one-time code. It expires in one hour. Run these commands in a terminal where <code>gh</code> is signed in as an owner of the account. They store the App ID and private key as secrets and print neither.</p>
+    <pre><code id="commands"></code></pre>
+    <p>Then upload <code>assets/app/sadr-app-logo.png</code> under "Display information" in the App's settings, and install the App on the account. <code>app/README.md</code> has the details.</p>
+  </section>
+
+  <!-- CI checks that this copy matches app/manifest.json. -->
+  <script type="application/json" id="manifest">
+{
+  "name": "Sadr for OWNER",
+  "url": "https://sadr.cygnusstrategy.com",
+  "description": "Sadr, a dark factory for software. This App is only Sadr's identity: it commits, opens pull requests and comments for the Sadr workflows and plugin.",
+  "hook_attributes": {
+    "url": "https://sadr.cygnusstrategy.com",
+    "active": false
+  },
+  "public": true,
+  "default_permissions": {
+    "contents": "write",
+    "pull_requests": "write",
+    "issues": "write",
+    "workflows": "write",
+    "checks": "read",
+    "statuses": "read",
+    "metadata": "read"
+  },
+  "default_events": []
+}
+  </script>
+</main>
+<script>
+(function () {
+  var form = document.getElementById("create");
+  var orgField = document.getElementById("org-field");
+  var served = location.protocol === "https:" || location.protocol === "http:";
+
+  function kind() { return form.querySelector("input[name=kind]:checked").value; }
+  form.addEventListener("change", function () { orgField.hidden = kind() !== "org"; });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var manifest = JSON.parse(document.getElementById("manifest").textContent);
+    var name = document.getElementById("name").value.trim();
+    var org = document.getElementById("org").value.trim();
+    if (!name && kind() !== "org") { alert("Enter an App name, such as \"Sadr for\" and your user name."); return; }
+    manifest.name = name || ("Sadr for " + org);
+    if (kind() === "org" && !/^[A-Za-z0-9-]+$/.test(org)) { alert("Enter the organization's login."); return; }
+    var state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    try { sessionStorage.setItem("sadr-state", state); sessionStorage.setItem("sadr-org", kind() === "org" ? org : ""); } catch (err) {}
+    // Served over HTTP(S), GitHub sends the one-time code back to this page.
+    // Opened as a local file, GitHub shows the new App, and you generate the key there.
+    if (served) manifest.redirect_url = location.origin + location.pathname;
+    var action = kind() === "org"
+      ? "https://github.com/organizations/" + encodeURIComponent(org) + "/settings/apps/new?state=" + state
+      : "https://github.com/settings/apps/new?state=" + state;
+    var post = document.createElement("form");
+    post.method = "post";
+    post.action = action;
+    var field = document.createElement("input");
+    field.type = "hidden";
+    field.name = "manifest";
+    field.value = JSON.stringify(manifest);
+    post.appendChild(field);
+    document.body.appendChild(post);
+    post.submit();
+  });
+
+  var params = new URLSearchParams(location.search);
+  var code = params.get("code");
+  if (!code) return;
+  var expected = null, org = "";
+  try { expected = sessionStorage.getItem("sadr-state"); org = sessionStorage.getItem("sadr-org") || ""; } catch (err) {}
+  if (!/^[A-Za-z0-9_-]+$/.test(code) || (expected && params.get("state") !== expected)) return;
+  var scope = org ? ' --org ' + org + ' --visibility all' : ' --repo OWNER/REPO';
+  document.getElementById("commands").textContent = [
+    'app=$(gh api -X POST /app-manifests/' + code + '/conversions)',
+    'jq -r .id <<<"$app" | gh secret set SADR_APP_ID' + scope,
+    'jq -r .pem <<<"$app" | gh secret set SADR_APP_PRIVATE_KEY' + scope,
+    'jq -r .html_url <<<"$app"',
+    'unset app'
+  ].join("\n");
+  form.hidden = true;
+  document.getElementById("done").hidden = false;
+  history.replaceState(null, "", location.pathname);
+})();
+</script>
+</body>
+</html>

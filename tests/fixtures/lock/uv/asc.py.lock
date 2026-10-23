@@ -1,0 +1,33 @@
+version = 1
+revision = 3
+requires-python = ">=3.15"
+
+[options]
+exclude-newer-span = "P7D"
+
+[[package]]
+name = "app"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "certifi" },
+]
+
+[[package]]
+name = "certifi"
+version = "2026.10.19"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/certifi-2026.10.19.tar.gz", hash = "sha256:a", size = 1, upload-time = "2026-10-20T02:24:59.000Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/certifi-2026.10.19-py3-none-any.whl", hash = "sha256:b", size = 1, upload-time = "2026-10-20T02:24:57.000Z" },
+]
+
+[[package]]
+name = "fastapi"
+version = "0.143.2"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "toolz"
+version = "1.0.0"
+source = { git = "https://github.com/acme/toolz?rev=abc#abc" }
