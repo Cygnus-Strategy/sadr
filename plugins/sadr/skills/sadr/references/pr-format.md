@@ -78,6 +78,17 @@ Opened by [Sadr](https://sadr.cygnusstrategy.com), a dark factory for software.
 
 The footer is always the last two lines, with the link, exactly as above.
 
+## Draft PRs
+
+Sadr opens its PRs as drafts only when the repo's AGENTS.md asks for drafts. A draft is a step, not a place to stay: Sadr marks the PR ready itself when the repo's condition is met. A plain "Open PRs as drafts." means ready once the PR's checks pass.
+
+- After opening or updating a draft, wait for its checks with `gh pr checks NUMBER -R OWNER/NAME --watch --interval 30`, for at most 30 minutes or the time left under "Limits" in SKILL.md, whichever is less.
+- When every check passed, run `gh pr ready NUMBER -R OWNER/NAME`. Then apply references/merging.md. GitHub never merges a draft, so ready the PR before you turn on auto-merge.
+- When a check fails, fix it in the run as for any red check, then wait again. When the wait ends with checks still running, leave the draft. A later run readies it.
+- On every run, before other work on the repo, ready each open Sadr draft whose checks all passed on the branch tip that Sadr published last. Then apply references/merging.md to it.
+- Leave a draft alone when a person converted the PR to a draft (its timeline shows a `convert_to_draft` event by someone other than Sadr), or when the repo says that a person marks PRs ready.
+- In preview, ready nothing. Say in the PR body what Sadr would do.
+
 ## Line breaks
 
 Do not wrap lines at a fixed width. Write each paragraph as one line, and each bullet as one line, however long. The reader's client wraps the text to the width of the screen. A line break inside a paragraph or a bullet makes ragged lines on GitHub and in other Markdown readers. Put a line break only between paragraphs, between bullets, and inside code blocks.

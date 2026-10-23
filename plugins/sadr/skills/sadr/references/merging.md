@@ -75,7 +75,7 @@ For each guard that blocks auto-merge, say why under `## Merging` with a `left f
 gh pr merge NUMBER -R OWNER/NAME --auto --MERGE_METHOD
 ```
 
-GitHub then merges the PR only after every required check passes. Sadr never merges a PR at once, and never uses `--admin` to skip a check.
+GitHub then merges the PR only after every required check passes. Sadr never merges a PR at once, and never uses `--admin` to skip a check. GitHub never merges a draft, so Sadr readies a draft first, as "Draft PRs" in references/pr-format.md says.
 
 Pick the merge method from the allowed methods that `merge_guard.py` prints:
 

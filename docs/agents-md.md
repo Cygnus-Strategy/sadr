@@ -32,7 +32,7 @@ Four things no AGENTS.md changes:
 
 ## Text outside the section
 
-The rest of your AGENTS.md is guidance for every agent, Sadr included. It binds Sadr where it is compatible with the four rules above. When it says "Open PRs as drafts", "Label every PR `deps`", "Assign PRs to @example-maintainer", or "Every PR has a `## Testing` section", Sadr does that. An added PR section goes before Sadr's `## Run` section.
+The rest of your AGENTS.md is guidance for every agent, Sadr included. It binds Sadr where it is compatible with the four rules above. When it says "Open PRs as drafts", "Label every PR `deps`", "Assign PRs to @example-maintainer", or "Every PR has a `## Testing` section", Sadr does that. A draft is a step, not a place to stay: Sadr marks its draft ready once the PR's checks pass, and a later run readies any draft that turned green after Sadr finished. An added PR section goes before Sadr's `## Run` section.
 
 Sadr never edits text outside `## Sadr`. When a line there is wrong, for example a test command that fails, Sadr quotes the line under "Needs you" in its PR, with the command that works.
 

@@ -27,7 +27,7 @@ When it is unclear whether a nested file is guidance or product content, treat i
 
 The rest of AGENTS.md is the repo's guidance for every agent. It binds Sadr where it is compatible with Sadr's rules. Examples:
 
-- "Open PRs as drafts." Sadr opens its PRs as drafts.
+- "Open PRs as drafts." Sadr opens its PRs as drafts and marks each one ready when its checks pass, as "Draft PRs" in references/pr-format.md says.
 - "Label every PR `deps`." "Assign PRs to @example-maintainer." Sadr applies the label and the assignee.
 - "Every PR has a `## Testing` section." Sadr adds the section, before `## Run`.
 - A commit-message convention or a sign-off rule. Sadr follows it. The repo's commit history is not a convention: without a stated one, Sadr's subjects start with `sadr: `, as references/writing.md says.
