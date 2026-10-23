@@ -8,7 +8,7 @@ adopter's repos. So each release lists its policy changes:
 - A new rule or a stricter rule is a minor release.
 - A looser rule or a removed rule is a major release.
 
-## v1.0.0 (unreleased)
+## v1.0.0 (2026-10-23)
 
 The first release.
 
