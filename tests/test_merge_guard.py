@@ -56,6 +56,30 @@ class GuardTest(unittest.TestCase):
         self.assertIn("Not Found (HTTP 404)", g["cannot_verify"])
         self.assertFalse(g["eligible"])
 
+    def test_ruleset_checks_suffice_without_admin(self):
+        # Recorded from an App token without Administration: classic protection answers 403,
+        # but the ruleset that requires a check is readable.
+        answers = {"repos/acme/app": REPO,
+                   "repos/acme/app/branches/main/protection/required_status_checks":
+                       "gh: Resource not accessible by integration (HTTP 403)",
+                   "repos/acme/app/rules/branches/main": [
+                       {"type": "required_status_checks",
+                        "parameters": {"required_status_checks": [{"context": "test"}]}}]}
+        with mock.patch.object(_gh, "run", fake_run(answers)):
+            g = merge_guard.guard("acme/app")
+        self.assertEqual((g["required_checks"], g["cannot_verify"], g["eligible"]), (1, None, True))
+        self.assertIn("HTTP 403", g["unread_sources"][0])
+
+    def test_unreadable_protection_and_no_ruleset_cannot_verify(self):
+        answers = {"repos/acme/app": REPO,
+                   "repos/acme/app/branches/main/protection/required_status_checks":
+                       "gh: Resource not accessible by integration (HTTP 403)",
+                   "repos/acme/app/rules/branches/main": []}
+        with mock.patch.object(_gh, "run", fake_run(answers)):
+            g = merge_guard.guard("acme/app")
+        self.assertIn("HTTP 403", g["cannot_verify"])
+        self.assertFalse(g["eligible"])
+
     def test_checks_from_protection_and_rulesets(self):
         answers = {"repos/acme/app": REPO,
                    "repos/acme/app/branches/main/protection/required_status_checks": {

@@ -55,7 +55,7 @@ Grant the App these repository permissions, and nothing else:
 | Commit statuses | read | read status results |
 | Metadata | read | required by GitHub |
 
-Administration (read) is optional. Without it, the API refuses to show classic branch protection, `merge_guard.py` reports `cannot_verify`, and Sadr leaves auto-merge off. Rulesets are readable without it.
+Administration (read) is optional. Without it, the API refuses to show classic branch protection, but rulesets stay readable. A ruleset that requires a check is enough for auto-merge. When only classic protection could require a check, `merge_guard.py` reports `cannot_verify` and Sadr leaves auto-merge off. So require checks with a ruleset, or grant Administration (read).
 
 Install the App on all repos, or on the repos in scope plus `OWNER/.github` and every repo that another repo declares in `### Related repos`.
 

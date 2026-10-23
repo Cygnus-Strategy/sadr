@@ -64,7 +64,7 @@ Sadr leaves the PR for a maintainer when any of these is true:
 - The PR has an item under "Needs you" about the PR's own change. A cooldown exception and an unverified build target are always one. A gap for the whole account, such as Semgrep Secrets turned off, goes once in the run report and never blocks auto-merge.
 - The build or the tests failed in the run.
 - `eligible` is false: the repo does not allow auto-merge, or the default branch has no ruleset or branch protection that requires a status check.
-- `merge_guard.py` reports `cannot_verify`. GitHub refuses to show branch protection on a private repo of a free plan (HTTP 403), and without the App's Administration permission. Sadr cannot prove that a check guards the merge, so it does not turn auto-merge on.
+- `merge_guard.py` reports `cannot_verify`. Neither branch protection nor a ruleset that Sadr can read shows a required check, and at least one of them was unreadable: GitHub refuses to show branch protection on a private repo of a free plan (HTTP 403), and shows classic protection only with the App's Administration permission. A readable ruleset that requires a check is enough. Without one, Sadr cannot prove that a check guards the merge, so it does not turn auto-merge on.
 
 For each guard that blocks auto-merge, add an item under "Needs you" that says what to turn on, or that Sadr could not verify the protection and why.
 

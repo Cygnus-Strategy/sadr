@@ -120,8 +120,11 @@ def guard(repo):
     classic, why_classic = classic_checks(repo, branch)
     rules, why_rules = ruleset_checks(repo, branch)
     problems = [w for w in (why_classic, why_rules) if w]
-    cannot = "; ".join(problems) if problems else None
     names = sorted((classic or set()) | (rules or set()))
+    # Auto-merge needs at least one required check. One readable source that
+    # requires a check proves that, even when the other source is unreadable,
+    # for example classic protection without the Administration permission.
+    cannot = "; ".join(problems) if problems and not names else None
     required = None if cannot else len(names)
     auto = bool(info.get("allow_auto_merge"))
     why_not = []
@@ -135,7 +138,7 @@ def guard(repo):
         why_not.append("the repo allows no merge method")
     return {"repo": repo, "default_branch": branch, "private": info.get("private"), "allow_auto_merge": auto,
             "merge_methods": methods, "required_checks": required, "required_check_names": names,
-            "cannot_verify": cannot, "eligible": not why_not, "why_not": why_not}
+            "cannot_verify": cannot, "unread_sources": problems, "eligible": not why_not, "why_not": why_not}
 
 
 KINDS = ("facts", "upkeep", "issue")
