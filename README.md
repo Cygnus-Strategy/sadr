@@ -3,7 +3,6 @@
 <p align="center">
   <a href="LICENSE"><img alt="license: BSD 3-Clause" src="https://img.shields.io/badge/license-BSD%203--Clause-15191f"></a>
   <a href="https://github.com/Cygnus-Strategy/sadr/releases"><img alt="release" src="https://img.shields.io/github/v/release/Cygnus-Strategy/sadr?color=15191f"></a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/Cygnus-Strategy/sadr"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/Cygnus-Strategy/sadr/badge"></a>
   <a href="https://code.claude.com"><img alt="runs on Claude Code" src="https://img.shields.io/badge/runs%20on-Claude%20Code-15191f"></a>
 </p>
 
