@@ -94,6 +94,9 @@ CLAIM_WINDOW = datetime.timedelta(hours=1)
 REPO_FIELDS = "nameWithOwner,isFork,isArchived,isEmpty,defaultBranchRef,pushedAt"
 
 
+OPT_OUT = re.compile(r"\s*(?:[-*+]\s+)?(?:\*\*|__)?sadr:\s*off\b", re.I)
+
+
 def sadr_section(text):
     """Return the lines of the '## Sadr' section of an AGENTS.md text.
 
@@ -136,7 +139,12 @@ def owner_agents(owner):
     except _gh.GhError as e:
         return {"owner_agents_md": None, "owner_sadr_section": None,
                 "owner_agents_md_error": f"cannot read {owner}/.github AGENTS.md: {e}"}
-    return {"owner_agents_md": text is not None, "owner_sadr_section": section_text(text),
+    # An opt-out line in the .github repo opts out that repo only. Leave it out
+    # of the owner's defaults, so that no other repo reads it as its own.
+    section = section_text(text)
+    if section is not None:
+        section = "\n".join(l for l in section.split("\n") if not OPT_OUT.match(l)).strip("\n")
+    return {"owner_agents_md": text is not None, "owner_sadr_section": section,
             "owner_agents_md_error": None}
 
 
@@ -207,7 +215,7 @@ def opt_out(text):
     only mentions the phrase does not count.
     """
     for line in sadr_section(text):
-        if re.match(r"\s*(?:[-*+]\s+)?(?:\*\*|__)?sadr:\s*off\b", line, re.I):
+        if OPT_OUT.match(line):
             return line.strip().lstrip("-* ").strip()
     return None
 

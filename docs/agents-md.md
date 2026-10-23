@@ -78,7 +78,7 @@ Write each setting as a sentence in `### Settings`.
 
 | Setting | Default | Example sentences |
 |---|---|---|
-| Opting out | Sadr runs | "Sadr: off. This repo is frozen for the audit." Sadr skips the repo and lists it as opted out in the report. Give a reason. |
+| Opting out | Sadr runs | "Sadr: off. This repo is frozen for the audit." Sadr skips the repo and lists it as opted out in the report. Give a reason. In the owner's `.github` repo, the line opts out that repo only. It is never an owner default. |
 | Schedule | every run | "Run at most once a day." "Weekends only." The schedule itself is set where runs start: the workflow's cron, or the local scheduler. |
 | Issues | on: Sadr builds open issues labeled `sadr`, one per run | "Build issues labeled `ready`." "Build at most two issues per run." "Don't build issues." Only a label applied by a user with write access counts. See "Issues" below. |
 | Auto-merge | off for facts, upkeep and issue PRs | "Auto-merge facts and upkeep PRs. Issue PRs need review." "Auto-merge upkeep PRs with minor updates." "Auto-merge facts PRs and patch updates." "Auto-merge everything." Each kind has its own setting. Upkeep takes a level: patch, minor or all. Before 1.0, a minor bump such as 0.143 to 0.148 counts as major. |

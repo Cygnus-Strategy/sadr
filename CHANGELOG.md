@@ -16,6 +16,7 @@ adopter's repos. So each release lists its policy changes:
 
 ### Fixed
 
+- A `Sadr: off` line in the owner's `.github` repo opts out that repo only. `repos.py` leaves it out of the owner's defaults, so other repos never read it as their own.
 - Sadr marks its draft PRs ready. When a repo asks for drafts, Sadr waits for the PR's checks and marks it ready when they pass, and each run readies any of its drafts that turned green later. Before, its drafts stayed drafts.
 
 ## v2.0.0 (2026-10-23)

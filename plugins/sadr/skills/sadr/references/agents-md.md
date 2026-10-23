@@ -140,7 +140,7 @@ Settings are sentences in `### Settings`. A sentence that Sadr cannot read with 
 
 | Setting | Default | Example sentences |
 |---|---|---|
-| Opting out | Sadr runs | "Sadr: off. This repo is frozen for the audit." |
+| Opting out | Sadr runs | "Sadr: off. This repo is frozen for the audit." In the owner's `.github` repo, the line opts out that repo only. It is never an owner default. |
 | Schedule | every run | "Run at most once a day." "Weekends only." |
 | Issues | on: Sadr builds open issues labeled `sadr` by a user with write access, one per run | "Build issues labeled `ready`." "Build at most two issues per run." "Don't build issues." |
 | Auto-merge | off for every kind of PR | "Auto-merge facts and upkeep PRs. Issue PRs need review." "Auto-merge upkeep PRs with minor updates." "Don't auto-merge." references/merging.md has the levels. |

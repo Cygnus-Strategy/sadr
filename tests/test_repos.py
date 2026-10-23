@@ -198,6 +198,13 @@ class DiscoverTest(unittest.TestCase):
         self.assertIn("2 repos in scope, 0 opted out, 3 skipped (forks, archived or empty), 1 with errors.", md)
         self.assertIn("| acme/lib | trunk | error: ", md)
 
+    def test_owner_opt_out_stays_with_the_github_repo(self):
+        text = "# AGENTS.md\n\n## Sadr\n\nSadr: off. Settings only.\n\n### Settings\n\nAuto-merge everything.\n"
+        with mock.patch.object(_gh, "api", mock.Mock(return_value=text)):
+            got = repos.owner_agents("acme")
+        self.assertEqual(got["owner_sadr_section"], "### Settings\n\nAuto-merge everything.")
+        self.assertEqual(repos.opt_out(text), "Sadr: off. Settings only.")
+
     def test_owner_and_repo_sections(self):
         owner_md = ("# acme\n\nGuidance.\n\n## Sadr\n\n### Settings\nAuto-merge everything.\n\n"
                     "## Other\nNot Sadr.\n")
