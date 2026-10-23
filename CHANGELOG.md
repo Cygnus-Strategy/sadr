@@ -10,6 +10,10 @@ adopter's repos. So each release lists its policy changes:
 
 ## Unreleased
 
+### Added
+
+- USAGE.md, a short guide to running Sadr, handing it issues and letting it merge. The README keeps what Sadr is and how to install it.
+
 ### Fixed
 
 - Sadr marks its draft PRs ready. When a repo asks for drafts, Sadr waits for the PR's checks and marks it ready when they pass, and each run readies any of its drafts that turned green later. Before, its drafts stayed drafts.

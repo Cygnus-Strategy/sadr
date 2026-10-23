@@ -2,7 +2,7 @@
 
 A repo tells Sadr everything in plain language, in its AGENTS.md. There are no config files. This page explains the `## Sadr` section to adopters: where it goes, what each subsection holds, who writes it, which settings Sadr understands, and how a repo states its own case.
 
-These conventions are versioned with Sadr. They are agent-neutral. Any agent, and any person, can read them. The rules that a run follows are in the skill's [references/agents-md.md](../plugins/sadr/skills/sadr/references/agents-md.md). This page and that file agree. When they do not, that file is right and this page has a bug.
+[USAGE.md](../USAGE.md) is the short guide to running Sadr. These conventions are versioned with Sadr. They are agent-neutral. Any agent, and any person, can read them. The rules that a run follows are in the skill's [references/agents-md.md](../plugins/sadr/skills/sadr/references/agents-md.md). This page and that file agree. When they do not, that file is right and this page has a bug.
 
 ## Where Sadr reads
 

@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://sadr.cygnusstrategy.com">Website</a> •
+  <a href="USAGE.md">Usage</a> •
   <a href="docs/agents-md.md">AGENTS.md conventions</a> •
   <a href="https://github.com/Cygnus-Strategy/sadr/security/policy">Security</a> •
   <a href="CHANGELOG.md">Changelog</a>
@@ -36,16 +37,6 @@ Cygnus Strategy builds its software with Sadr. It's open source, so you can run 
 - Fixes what security scanners find, in the pull request.
 - Writes down what it learns about each repo in its AGENTS.md, in a PR of its own.
 - Runs on your schedule, within time and spend limits, and merges only when you let it.
-
-## Building issues
-
-A maintainer accepts an issue by applying the `sadr` label. Only a label applied by a user with write access counts, so anyone can file an idea, but only a maintainer can send it to Sadr. Create the label once in each repo, under Issues, then Labels, or with `gh label create sadr`. No label, no work.
-
-- **One issue per run** by default, oldest first. "Build at most two issues per run." in the repo's AGENTS.md raises it.
-- **Another label.** "Build issues labeled `ready`." uses your own label instead.
-- **Off.** "Don't build issues." turns it off.
-
-For each accepted issue, Sadr either builds it in a PR that closes the issue, asks the questions that block the work in a comment, or comments that merged PRs already deliver it. An issue that plans several PRs gets one part per run, each marked `Part of #N`. Sadr waits while its own question has no answer, and while a maintainer's request for another maintainer's sign-off has no reply. [docs/agents-md.md](docs/agents-md.md#issues) has the details.
 
 ## Install
 
@@ -111,7 +102,7 @@ Set up the Sadr GitHub App for the GitHub account OWNER (an organization unless 
 7. Confirm with: gh secret list --org OWNER (or --repo for a personal account). Report the App's URL, its slug, and where it is installed. Do not report the key.
 ```
 
-Then tell Sadr about each repo in plain language, in the `## Sadr` section of its AGENTS.md. See [docs/agents-md.md](docs/agents-md.md).
+Then tell Sadr about each repo in plain language, in the `## Sadr` section of its AGENTS.md. [USAGE.md](USAGE.md) shows how to run Sadr, hand it issues, and let it merge. [docs/agents-md.md](docs/agents-md.md) is the full reference.
 
 ## Design principles
 
