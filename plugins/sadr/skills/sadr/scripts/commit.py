@@ -14,29 +14,30 @@ The script compares the local branch with the remote one:
   another run moved it, the script stops and publishes nothing (exit 4).
 
 Then it recreates each local commit after that point, oldest first, with
-the same message and the same tree:
+the same message and the same tree. GitHub signs a commit made through
+the API, and marks it Verified, only when the commit carries the App's
+own identity. So the commits name no author and no committer: GitHub
+shows the App's bot login, such as sadrbot[bot], as the author.
 
-- gitdata: the git data API (blobs, a tree on the parent's tree, a commit,
-  then a fast-forward of the ref). This is the default. The commit names
-  its author explicitly: the name Sadr (--author-name), the bot email and
-  the local commit's author date. It names no committer, so GitHub signs
-  the commit. The method keeps file modes, symlinks, submodules and merge
-  commits. The script checks that each tree GitHub builds has the same SHA
-  as the local tree.
 - graphql: createCommitOnBranch with fileChanges (base64 additions and
-  deletions) and expectedHeadOid. GitHub ignores any author there and
-  shows the App's bot login instead. It cannot express a merge commit, a
-  symlink, a submodule, an executable file, or a mode change, because
-  GitHub writes every file it adds as a regular file. --method graphql
-  exits 3 with the reasons when a change does not fit.
+  deletions) and expectedHeadOid. auto uses it whenever it can. It cannot express
+  a merge commit, a symlink, a submodule, an executable file, or a mode
+  change, because GitHub writes every file it adds as a regular file.
+- gitdata: the git data API (blobs, a tree on the parent's tree, a commit,
+  then a fast-forward of the ref). It keeps file modes, symlinks,
+  submodules and merge commits, and checks that each tree GitHub builds
+  has the same SHA as the local tree. It is only the fallback for the
+  changes that graphql cannot express.
 
-The author email is --author-email, else the bot email of the App in
-SADR_APP_SLUG (see identity.py), else the local commit's author email.
+--method auto (the default) uses graphql, and gitdata only when a commit
+to publish has a change that graphql cannot express. The result lists
+those reasons. --method graphql exits 3 with the reasons instead.
 
 Each result lists the new commit SHAs and whether GitHub reports them as
-verified. The script reads verification.verified back for each commit.
-When GitHub did not verify one, it prints a warning and still exits 0: the
-fallback is --method graphql. After publishing, the script fetches the
+verified. The script reads verification.verified back for each gitdata
+commit, and createCommitOnBranch returns it for each graphql commit.
+When GitHub did not verify one, the script prints a warning and still
+exits 0. After publishing, the script fetches the
 branch and moves the local branch to the new remote tip (same tree, new
 SHAs), so the next call starts from there. --no-sync skips that.
 
@@ -48,7 +49,7 @@ cannot be expressed with --method graphql, 4 the remote branch moved.
 Examples:
   commit.py --repo acme/app --branch sadr/upkeep
   commit.py --repo acme/app --branch sadr/facts --dry-run --json
-  commit.py --repo acme/app --branch sadr/issue-12 --dir ~/work/app --method graphql
+  commit.py --repo acme/app --branch sadr/issue-12 --dir ~/work/app --method gitdata
 
 Needs `git`, and a `gh` CLI that uses the App token (GH_TOKEN). The script
 never prints the token. Standard library only.
@@ -62,9 +63,7 @@ import sys
 import tempfile
 
 import _gh
-import identity
 
-NAME = identity.NAME
 GRAPHQL_LIMIT = 40 * 1024 * 1024
 REGULAR = "100644"
 EXECUTABLE = "100755"
@@ -206,13 +205,13 @@ def plan(cwd, anchor, head, method):
         if size * 4 // 3 > GRAPHQL_LIMIT:
             why.append(f"{sha[:7]} adds {size // (1024 * 1024)} MB, too much for one GraphQL request")
         reasons += why
-        email, date = git(["log", "-1", "--format=%ae%n%aI", sha], cwd).splitlines()[:2]
         rows.append({"local": sha, "parents": parents, "tree": git(["rev-parse", f"{sha}^{{tree}}"], cwd).strip(),
-                     "message": message_of(cwd, sha), "changes": chs, "graphql_problems": why,
-                     "author_email": email, "author_date": date})
+                     "message": message_of(cwd, sha), "changes": chs, "graphql_problems": why})
     if method == "graphql" and reasons:
         raise Unexpressible("createCommitOnBranch cannot express: " + "; ".join(reasons)
-                            + ". Use --method gitdata.")
+                            + ". Use --method auto or gitdata.")
+    if method == "auto":
+        method = "gitdata" if reasons else "graphql"
     return {"method": method, "commits": rows, "reasons": reasons}
 
 
@@ -266,11 +265,12 @@ def landed_commit(repo, branch, parent, tree):
     return None
 
 
-def publish_gitdata(repo, row, mapped, cwd, author):
+def publish_gitdata(repo, row, mapped, cwd):
     """Create one commit through the git data API. Return (new sha, verified).
 
-    AUTHOR is {name, email}, or email None for the local commit's email.
-    The commit names no committer, so that GitHub signs it.
+    The commit names no author and no committer. GitHub then uses the
+    App's identity and signs the commit. An explicit author makes GitHub
+    leave the commit unsigned.
     """
     parents = [mapped.get(p, p) for p in row["parents"]]
     base_tree = git(["rev-parse", f"{row['parents'][0]}^{{tree}}"], cwd).strip()
@@ -289,9 +289,8 @@ def publish_gitdata(repo, row, mapped, cwd, author):
     tree = gh_input(["-X", "POST", f"repos/{repo}/git/trees"], {"base_tree": base_tree, "tree": entries})
     if (tree or {}).get("sha") != row["tree"]:
         raise PublishError(f"{row['local'][:7]}: GitHub built tree {(tree or {}).get('sha')}, expected {row['tree']}")
-    who = {"name": author["name"], "email": author.get("email") or row["author_email"], "date": row["author_date"]}
     commit = gh_input(["-X", "POST", f"repos/{repo}/git/commits"],
-                      {"message": row["message"] + "\n", "tree": row["tree"], "parents": parents, "author": who})
+                      {"message": row["message"] + "\n", "tree": row["tree"], "parents": parents})
     if not (commit or {}).get("sha"):
         raise PublishError("GitHub returned no commit")
     return commit["sha"], read_verified(repo, commit["sha"])
@@ -324,13 +323,8 @@ def sync_local(cwd, branch, sha):
         git(["update-ref", f"refs/heads/{branch}", sha], cwd)
 
 
-def publish(repo, branch, cwd=".", base=None, method="gitdata", dry_run=False, sync=True, local=None, author=None):
-    """Publish the local BRANCH (or LOCAL ref) to REPO. Return a result dict.
-
-    AUTHOR is {name, email} for gitdata commits. The default is the name
-    Sadr and, with email None, the local commit's author email.
-    """
-    author = author or {"name": NAME, "email": None}
+def publish(repo, branch, cwd=".", base=None, method="auto", dry_run=False, sync=True, local=None):
+    """Publish the local BRANCH (or LOCAL ref) to REPO. Return a result dict."""
     local = local or branch
     head = git(["rev-parse", "--verify", f"{local}^{{commit}}"], cwd).strip()
     tip = remote_tip(repo, branch)
@@ -366,7 +360,7 @@ def publish(repo, branch, cwd=".", base=None, method="gitdata", dry_run=False, s
             current = mapped[row["local"]] = sha
     else:
         for row, out in zip(p["commits"], result["commits"]):
-            sha, verified = publish_gitdata(repo, row, mapped, cwd, author)
+            sha, verified = publish_gitdata(repo, row, mapped, cwd)
             out.update(remote=sha, verified=verified)
             current = mapped[row["local"]] = sha
         move_ref(repo, branch, current, exists=bool(tip))
@@ -392,10 +386,8 @@ def main(argv=None):
     ap.add_argument("--local", help="the local branch or commit to publish (default: the same name as --branch)")
     ap.add_argument("--dir", default=".", help="the local clone (default: the current folder)")
     ap.add_argument("--base", metavar="SHA", help="where a new remote branch starts (default: the default branch head)")
-    ap.add_argument("--method", choices=["gitdata", "graphql"], default="gitdata")
-    ap.add_argument("--author-name", default=NAME, help=f"the author name of gitdata commits (default: {NAME})")
-    ap.add_argument("--author-email", help="the author email of gitdata commits (default: the bot email of "
-                                           "$SADR_APP_SLUG, else the local commit's author email)")
+    ap.add_argument("--method", choices=["auto", "graphql", "gitdata"], default="auto",
+                    help="auto (default): graphql, or gitdata when a change needs it")
     ap.add_argument("--dry-run", action="store_true", help="print the plan and write nothing")
     ap.add_argument("--no-sync", action="store_true", help="leave the local branch where it is after publishing")
     ap.add_argument("--json", action="store_true", help="print JSON")
@@ -405,15 +397,7 @@ def main(argv=None):
     if a.branch in ("main", "master") or not a.branch.startswith("sadr/"):
         ap.error("Sadr publishes only sadr/ branches")
     try:
-        email = a.author_email
-        slug = os.environ.get("SADR_APP_SLUG")
-        if not email and slug and a.method == "gitdata" and not a.dry_run:
-            email = identity.bot_identity(slug)["email"]
-        res = publish(a.repo, a.branch, a.dir, a.base, a.method, a.dry_run, not a.no_sync, a.local,
-                      {"name": a.author_name, "email": email})
-    except (LookupError, ValueError) as e:
-        print(f"commit.py: {e}", file=sys.stderr)
-        return 2
+        res = publish(a.repo, a.branch, a.dir, a.base, a.method, a.dry_run, not a.no_sync, a.local)
     except PublishError as e:
         print(f"commit.py: {e}", file=sys.stderr)
         return e.code
@@ -434,8 +418,9 @@ def main(argv=None):
             print(f"  local branch not moved: {res['sync_error']}", file=sys.stderr)
     if res.get("unverified"):
         print(f"commit.py: WARNING: GitHub did not verify {len(res['unverified'])} commits on {a.repo} {a.branch}: "
-              f"{', '.join(s[:7] for s in res['unverified'])}. The commits are published. To publish Verified "
-              f"commits instead, use --method graphql, which shows the App's bot login as the author.",
+              f"{', '.join(s[:7] for s in res['unverified'])} ({res['method']}). The commits are published. "
+              f"List them under Needs you. GitHub signs API commits only under the App's own identity: "
+              f"check that GH_TOKEN is the App's installation token.",
               file=sys.stderr)
     return 0
 

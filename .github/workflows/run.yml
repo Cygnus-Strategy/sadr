@@ -2,8 +2,8 @@
 # workflow that calls this one on a schedule. See examples/sadr.yml.
 #
 # Sadr acts as the owner's own Sadr GitHub App (app_id and app_private_key),
-# created from app/manifest.json. It commits as "Sadr" with the App's bot
-# email and publishes Verified commits through the API. Without an App, the
+# created from app/manifest.json. It publishes Verified commits through the
+# API, authored by the App's bot user, such as sadrbot[bot]. Without an App, the
 # run falls back to the workflow's GITHUB_TOKEN: it then cannot change
 # workflow files or read other repos. See references/permissions.md.
 name: Sadr run

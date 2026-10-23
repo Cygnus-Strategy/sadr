@@ -17,8 +17,10 @@
 # never exported or written to disk. Outputs (in $GITHUB_OUTPUT): app-token,
 # read-token, app-slug, bot-name (the bot's login), bot-id, bot-email.
 #
-# Sadr commits as the author name "Sadr" with the bot user's noreply email.
-# Each owner's App has its own slug and bot id, so both are looked up here.
+# Local commits use the bot user's login and noreply email. commit.py
+# publishes them through the API, where GitHub signs a commit only under the
+# App's own identity, so the published author is the same bot user. Each
+# owner's App has its own slug and bot id, so both are looked up here.
 set -euo pipefail
 
 app_id=$1 owner=$2 name=$3
@@ -121,13 +123,13 @@ git config --global --replace-all credential.https://github.com.helper ''
 git config --global --add credential.https://github.com.helper "$dir/bin/git-credential-sadr"
 echo "$dir/bin" >> "$GITHUB_PATH"
 
-# Commit as Sadr, with the App's bot user email.
+# Commit locally as the App's bot user, the author that GitHub shows.
 slug=$(app_api GET /app | jq -r .slug)
 bot_name="$slug[bot]"
 bot_id=$(curl -fsS --retry 3 -H "Authorization: Bearer $(cat "$dir/app")" "$api/users/$slug%5Bbot%5D" | jq -r .id)
 [[ "$bot_id" =~ ^[0-9]+$ ]] || { echo "::error::Could not look up the bot user $bot_name."; exit 1; }
 bot_email="$bot_id+$bot_name@users.noreply.github.com"
-git config --global user.name Sadr
+git config --global user.name "$bot_name"
 git config --global user.email "$bot_email"
 
 {

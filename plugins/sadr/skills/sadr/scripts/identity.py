@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Print the git identity that Sadr commits as.
+"""Print the git identity for Sadr's local commits.
 
 A real run acts as the organization's own copy of the Sadr GitHub App.
-Its commits use the App's bot account:
+Sadr builds commits locally, and commit.py publishes them through the API.
+GitHub signs an API commit only under the App's own identity, so the
+published commits show the App's bot user as the author. The local
+commits use the same identity, so that a Signed-off-by line matches the
+published author:
 
-  name   Sadr
+  name   <app slug>[bot]
   email  <bot user id>+<app slug>[bot]@users.noreply.github.com
 
 Each organization's App has its own slug and bot user id. The script looks
@@ -37,13 +41,14 @@ import sys
 
 import _gh
 
-NAME = "Sadr"
 PLACEHOLDER = {"name": "Sadr (preview)", "email": "sadr-preview@localhost.invalid"}
 SLUG = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?", re.I)
 
 
-def bot_identity(slug, name=NAME):
+def bot_identity(slug, name=None):
     """Return {name, email, login, id} for the bot user of the App SLUG.
+
+    The name is the bot login, such as sadrbot[bot], unless NAME is given.
 
     Raise LookupError when GitHub has no such bot user.
     """
@@ -54,7 +59,7 @@ def bot_identity(slug, name=NAME):
     if not isinstance(user, dict) or not user.get("id"):
         raise LookupError(f"GitHub has no user {login}. Check the App slug (the last part of the App's URL, "
                           f"github.com/apps/<slug>)")
-    return {"name": name, "email": f"{user['id']}+{login}@users.noreply.github.com", "login": login,
+    return {"name": name or login, "email": f"{user['id']}+{login}@users.noreply.github.com", "login": login,
             "id": user["id"]}
 
 
@@ -77,7 +82,7 @@ def main(argv=None):
                                  epilog=__doc__.split("\n\n", 1)[1])
     ap.add_argument("--app-slug", default=os.environ.get("SADR_APP_SLUG"),
                     help="the App's slug (default: $SADR_APP_SLUG)")
-    ap.add_argument("--name", default=NAME, help=f"the author name (default: {NAME})")
+    ap.add_argument("--name", help="the author name (default: the bot login, such as sadrbot[bot])")
     ap.add_argument("--placeholder", action="store_true",
                     help="print the placeholder identity for local preview commits, with no network call")
     ap.add_argument("--format", choices=["text", "env", "git", "json"], default="text")

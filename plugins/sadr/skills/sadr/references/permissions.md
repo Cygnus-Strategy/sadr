@@ -6,9 +6,9 @@ Sadr acts on GitHub as one identity with the least access that its work needs. T
 
 Every run acts as the owner's own Sadr GitHub App, the first run included. Each owner creates its own copy of the App from the manifest that Sadr ships in `app/manifest.json`, and installs it on its account. The private key stays in the owner's secrets. Nobody else, Cygnus Strategy included, holds a key to it. The App is only an identity: every rule lives in the plugin and the workflows. The manifest changes only when the permissions change. `app/README.md` in the Sadr repo has the setup steps.
 
-Sadr commits, pushes, opens PRs and comments as the App's bot user. The commit author is:
+Sadr commits, pushes, opens PRs and comments as the App's bot user. GitHub signs a commit made through the API, and shows it as Verified, only when the commit carries the App's own identity. So every published commit shows the App's bot user as its author, never the name `Sadr`:
 
-- name: `Sadr`
+- name: `<app-slug>[bot]`, such as `sadrbot[bot]`
 - email: `<bot-user-id>+<app-slug>[bot]@users.noreply.github.com`
 
 Each owner's App has its own slug and bot user id. Never hard-code either. Look them up at run time:
@@ -17,7 +17,7 @@ Each owner's App has its own slug and bot user id. Never hard-code either. Look 
 python3 scripts/identity.py --json
 ```
 
-It takes the App's slug from `SADR_APP_SLUG` or `--app-slug`, looks up the bot user with `gh api /users/<app-slug>%5Bbot%5D`, and prints the name and email. The workflows set this identity before the run starts. Do not change it.
+It takes the App's slug from `SADR_APP_SLUG` or `--app-slug`, looks up the bot user with `gh api /users/<app-slug>%5Bbot%5D`, and prints the name and email. The local commits use this identity, so that a `Signed-off-by:` line matches the published author. The workflows set it before the run starts. Do not change it.
 
 ### Signed commits
 
@@ -27,9 +27,11 @@ Build each commit locally with `git commit`, so that the build and the secrets c
 python3 scripts/commit.py --repo OWNER/NAME --branch BRANCH
 ```
 
-It creates each local commit that the remote branch lacks through the git data API (blobs, a tree, then a commit), with the same message and tree, and moves the branch to the result. The commit names its author explicitly: the name `Sadr`, the bot email from `identity.py`, and the local commit's date. It names no committer, so GitHub signs the commit and shows it as Verified. A commit that changes `.github/workflows/` needs the Workflows permission on the token. The local commits are only the build. The published commits are the API commits.
+It recreates each local commit that the remote branch lacks, with the same message and tree, through GitHub's `createCommitOnBranch` GraphQL mutation. GitHub makes the App's bot login, such as `sadrbot[bot]`, the author, signs the commit, and shows it as Verified. The author date is the publish time. A commit that changes `.github/workflows/` needs the Workflows permission on the token. The local commits are only the build. The published commits are the API commits.
 
-`commit.py` reads `verification.verified` back from GitHub for each commit it creates and reports it. When GitHub does not verify a commit, the script prints a warning and still publishes. Put the unverified commits under "Needs you". If GitHub refuses to verify the commits, the fallback is `commit.py --method graphql`, which uses `createCommitOnBranch`. GitHub signs those commits too, but it ignores the author there and shows the App's bot login, such as `sadrbot[bot]`, as the author.
+`createCommitOnBranch` cannot express a merge commit, a symlink, a submodule, an executable file or a mode change. For those commits only, `commit.py` falls back to the git data API (blobs, a tree, then a commit) and lists the reasons in its result. That commit names no author and no committer, so GitHub uses the App's identity and signs it too. Never pass an explicit author: GitHub then leaves the commit unsigned.
+
+`commit.py` reports whether GitHub verified each commit it creates. For a git data commit, it reads `verification.verified` back. When GitHub does not verify a commit, the script prints a warning and still publishes. Put the unverified commits under "Needs you".
 
 ### Local runs and preview
 
@@ -87,7 +89,7 @@ A per-repo workflow can run with the workflow's own `GITHUB_TOKEN` and no App. T
 - **Other repos.** `GITHUB_TOKEN` reads only its own repo. A private `OWNER/.github` or a private related repo is unreachable. GitHub answers 404 for a private repo the token cannot see, so `repos.py` then reports `owner_agents_md` as false. Report each one under "Needs you", and say that the owner's Settings were not read when `OWNER/.github` is private.
 - **Push workflows after a merge.** GitHub starts no workflow for an event that `GITHUB_TOKEN` caused. A PR that auto-merge merges does not start the default branch's push workflows, such as a deploy. Say so in `## Merging`.
 
-- **Sadr's identity.** Sadr comments as `github-actions[bot]`. `commit.py` still creates the commits through the API with the author `Sadr`, and reports whether GitHub verified them.
+- **Sadr's identity.** Sadr comments as `github-actions[bot]`. `commit.py` still creates the commits through the API, so `github-actions[bot]` is their author, and reports whether GitHub verified them.
 
 The PR's `## Not done or not checked` says that the run used the degraded mode.
 

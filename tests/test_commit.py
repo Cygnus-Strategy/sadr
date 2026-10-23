@@ -133,19 +133,24 @@ class CommitTest(unittest.TestCase):
         self.assertEqual(fake.calls[0][1]["variables"]["input"]["expectedHeadOid"], first)
         self.assertFalse(res["created_ref"])
 
-    def test_gitdata_is_default_with_sadr_author_and_no_committer(self):
+    def test_graphql_is_default_and_names_no_author(self):
         self.r.write("a.txt", "1\n")
-        local = self.r.commit("sadr: one")
+        self.r.commit("sadr: one")
         res, fake = self.run_publish()
+        self.assertEqual((res["method"], res["created_ref"], res["reasons"]), ("graphql", True, []))
+        inp = [b for a, b in fake.calls if a == ["graphql"]][0]["variables"]["input"]
+        self.assertNotIn("author", inp)
+        self.assertEqual((res["commits"][0]["verified"], res["unverified"]), (True, []))
+
+    def test_gitdata_names_no_author_and_no_committer(self):
+        self.r.write("a.txt", "1\n")
+        self.r.commit("sadr: one")
+        res, fake = self.run_publish(method="gitdata")
         self.assertEqual((res["method"], res["created_ref"]), ("gitdata", True))
         body = [b for a, b in fake.calls if a[-1].endswith("/git/commits")][0]
         self.assertNotIn("committer", body)
-        self.assertEqual(body["author"], {"name": "Sadr", "email": "test@example.invalid",
-                                          "date": git(self.r.dir, "log", "-1", "--format=%aI", local)})
+        self.assertNotIn("author", body)
         self.assertEqual((res["commits"][0]["verified"], res["unverified"]), (True, []))
-        res, fake = self.run_publish(author={"name": "Sadr", "email": "1+s[bot]@users.noreply.github.com"})
-        body = [b for a, b in fake.calls if a[-1].endswith("/git/commits")][0]
-        self.assertEqual(body["author"]["email"], "1+s[bot]@users.noreply.github.com")
 
     def test_unverified_commit_warns_and_exits_zero(self):
         self.r.write("a.txt", "1\n")
@@ -158,12 +163,12 @@ class CommitTest(unittest.TestCase):
                 mock.patch.object(commit, "default_tip", return_value=self.r.base), \
                 mock.patch.object(commit, "read_verified", return_value=False), \
                 mock.patch.object(commit, "gh_input", fake), \
-                mock.patch.dict(os.environ, {"SADR_APP_SLUG": ""}), \
                 mock.patch("sys.stdout", io.StringIO()), mock.patch("sys.stderr", io.StringIO()) as err:
-            code = commit.main(["--repo", "acme/app", "--branch", "sadr/upkeep", "--dir", self.r.dir, "--no-sync"])
+            code = commit.main(["--repo", "acme/app", "--branch", "sadr/upkeep", "--dir", self.r.dir, "--no-sync",
+                                "--method", "gitdata"])
         self.assertEqual(code, 0)
         self.assertIn("WARNING: GitHub did not verify 1 commits", err.getvalue())
-        self.assertIn("--method graphql", err.getvalue())
+        self.assertIn("only under the App's own identity", err.getvalue())
 
     def test_executable_and_symlink_need_gitdata(self):
         self.r.write("run.sh", "#!/bin/sh\n", mode=0o755)
@@ -176,9 +181,11 @@ class CommitTest(unittest.TestCase):
                 mock.patch.object(commit, "default_tip", return_value=self.r.base):
             with self.assertRaises(commit.Unexpressible) as cm:
                 commit.publish("acme/app", "sadr/upkeep", self.r.dir, method="graphql", sync=False)
-        self.assertIn("Use --method gitdata", str(cm.exception))
+        self.assertIn("Use --method auto or gitdata", str(cm.exception))
+        # The default falls back to gitdata, and says why.
         res, fake = self.run_publish()
         self.assertEqual(res["method"], "gitdata")
+        self.assertEqual(sorted(res["reasons"]), ["link: a symlink", "run.sh: an executable file (mode 100755)"])
         trees = [b for a, b in fake.calls if a[-1].endswith("/git/trees")]
         modes = {e["path"]: e["mode"] for e in trees[0]["tree"]}
         self.assertEqual(modes, {"run.sh": "100755", "link": "120000", "old.txt": "100644"})
@@ -265,7 +272,7 @@ class IdentityTest(unittest.TestCase):
             ident = identity.bot_identity("sadr-acme")
         api.assert_called_once_with("/users/sadr-acme%5Bbot%5D")
         self.assertEqual((ident["name"], ident["email"]),
-                         ("Sadr", "123456+sadr-acme[bot]@users.noreply.github.com"))
+                         ("sadr-acme[bot]", "123456+sadr-acme[bot]@users.noreply.github.com"))
 
     def test_unknown_slug(self):
         with mock.patch.object(_gh, "api", return_value=None):

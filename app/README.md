@@ -28,7 +28,7 @@ The manifest asks for these repository permissions and nothing else. [references
 
 ### With the page
 
-Serve this folder over HTTP, for example with `python3 -m http.server` in `app/`, and open `create.html`. Enter your organization, or choose a personal account. App names are unique across GitHub, and `Sadr` is reserved by a user account. Leave the name empty to get `Sadr for` and your account name, or pick another free name. Cygnus Strategy's own App is `sadrbot`. Sadr's commits carry the author name `Sadr` whatever the App is called.
+Serve this folder over HTTP, for example with `python3 -m http.server` in `app/`, and open `create.html`. Enter your organization, or choose a personal account. App names are unique across GitHub, and `Sadr` is reserved by a user account. Leave the name empty to get `Sadr for` and your account name, or pick another free name. Cygnus Strategy's own App is `sadrbot`. Sadr's commits show the App's bot user, such as `sadrbot[bot]`, as their author and are Verified: GitHub signs commits made through the API only under the App's own identity.
 
 GitHub shows the App it will create. Check the permissions, then create it. GitHub sends a one-time code back to the page, and the page prints the commands that store the secrets. The code expires after one hour.
 

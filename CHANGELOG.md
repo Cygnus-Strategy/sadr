@@ -23,7 +23,7 @@ The first release.
 - A secrets check with gitleaks before every push.
 - The AGENTS.md conventions in `docs/agents-md.md`, with examples.
 - The reusable GitHub Actions workflows for one repo and for a whole organization or user account. Both take the Sadr release as a commit SHA, load the plugin at that SHA, and act through a GitHub App.
-- A GitHub App as Sadr's identity, which each owner creates from `app/manifest.json` and owns: commits authored as `Sadr` with the App's bot email, created through the git data API so that GitHub marks them Verified, with a warning when it does not, a write token for each repo, a read-only token for `OWNER/.github` and declared related repos, tokens renewed every 45 minutes, and a documented degraded mode with `GITHUB_TOKEN` only.
+- A GitHub App as Sadr's identity, which each owner creates from `app/manifest.json` and owns: commits created through `createCommitOnBranch` (the git data API only for merge commits, symlinks, submodules and mode changes), authored by the App's bot user and marked Verified by GitHub, which signs API commits only under the App's own identity, with a warning when it does not verify one, a write token for each repo, a read-only token for `OWNER/.github` and declared related repos, tokens renewed every 45 minutes, and a documented degraded mode with `GITHUB_TOKEN` only.
 - `app/create.html`, `app/README.md` and the App logo, with a CI check that the manifest, the logo and the README setup steps match the documented permissions.
 - Sadr's upkeep PR moves an adopter's pin of Sadr's own workflow to newer releases, under the cooldown.
 - Related repos declared in AGENTS.md, or inferred from a checked-in build file, built against as clean read-only worktrees of their default branch.
