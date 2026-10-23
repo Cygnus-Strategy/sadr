@@ -17,11 +17,18 @@ of a free plan. They answer HTTP 404 when the token cannot read them.
 A run opens three kinds of PR, and each has its own setting, off by
 default: facts (on or off), upkeep (off, patch, minor or all) and issue
 (on or off). --kind names the PR's kind. The setting comes from
---setting, or else from --settings-text: the plain-language Settings
-sentences of the owner's AGENTS.md, then the repo's, for example "Auto-merge
-facts and housekeeping PRs. Enhancement PRs need review." A later sentence
-wins. A sentence about auto-merge that the script cannot read is listed
-under unclear, and changes nothing.
+--setting, or else from --settings-text, given exactly twice and in this
+order: first the owner's text (owner_sadr_section in repos.py), then the
+repo's (sadr_section). Pass "" for a text that is null. Each text can be
+a whole ## Sadr section: when it has a ### Settings subsection, only that
+subsection counts. Settings are plain sentences, for example "Auto-merge
+facts and housekeeping PRs. Enhancement PRs need review." A later
+sentence wins, so a repo sentence overrides the owner's for the kinds it
+names and leaves the other kinds alone. setting_source in the output
+says where the kind's setting came from: repo, owner, or default (Sadr's
+default, off). With some other number of texts, it names the text by its
+position. A sentence about auto-merge that the script cannot read is
+listed under unclear, and changes nothing.
 
 For an upkeep PR, pass each version change with --bump NAME=FROM..TO.
 The script classifies it as patch, minor or major. Before 1.0, a change
@@ -44,6 +51,7 @@ Examples:
       --bump vite=7.1.0..7.2.1 --bump runtime:node=24.11.0..24.11.1
   merge_guard.py --repo acme/app --kind issue \\
       --settings-text "Auto-merge everything." --settings-text "Enhancement PRs need review."
+  merge_guard.py --repo acme/app --kind facts --settings-text "" --settings-text "$REPO_SECTION"
   merge_guard.py classify 0.143.0 0.148.0
 
 Needs an authenticated `gh` CLI. Standard library only.
@@ -195,6 +203,32 @@ def sentences(text):
     return [x.strip() for x in re.split(r"(?<=[.;!])\s+|\n+", text or "") if x.strip()]
 
 
+def settings_part(text):
+    """The ### Settings subsection of TEXT, or all of TEXT when it has none.
+
+    The subsection ends at the next heading of level one to three. Lines in
+    code fences do not count as headings.
+    """
+    lines, inside, found, fence = [], False, False, False
+    for line in (text or "").splitlines():
+        if re.match(r"\s*(```|~~~)", line):
+            fence = not fence
+        if not fence and re.match(r"#{1,3}(\s|$)", line):
+            inside = re.fullmatch(r"###\s+Settings\s*#*\s*", line, re.I) is not None
+            found = found or inside
+            continue
+        if inside:
+            lines.append(line)
+    return "\n".join(lines) if found else (text or "")
+
+
+def source_names(texts):
+    """The source label of each Settings text: owner and repo for two texts."""
+    if len(texts) == 2:
+        return ["owner", "repo"]
+    return [f"settings text {i + 1}" for i in range(len(texts))]
+
+
 def parse_settings(texts):
     """Resolve the per-kind auto-merge settings from plain-language sentences.
 
@@ -203,10 +237,22 @@ def parse_settings(texts):
     upkeep to off, patch, minor or all; unclear lists the sentences about
     auto-merge that the script could not read.
     """
+    settings, unclear, _ = resolve_settings(texts)
+    return settings, unclear
+
+
+def resolve_settings(texts):
+    """parse_settings(), plus the source of each kind's setting.
+
+    Return (settings, unclear, sources). sources maps each kind to the
+    label of the text whose sentence set it last (see source_names), or
+    to default when no sentence named it.
+    """
     settings = {"facts": "off", "upkeep": "off", "issue": "off"}
+    sources = dict.fromkeys(KINDS, "default")
     unclear = []
-    for text in texts:
-        for sent in sentences(text):
+    for text, name in zip(texts, source_names(texts)):
+        for sent in sentences(settings_part(text)):
             low = sent.lower().strip("-*• ")
             neg = NEGATIVE.search(low)
             if not (AUTO_MERGE.search(low) or neg):
@@ -216,10 +262,11 @@ def parse_settings(texts):
                      else "all" if re.search(r"\bmajor|\ball\b|\bany\b|\bevery", low) else None)
             if neg:
                 for k in kinds or KINDS:
-                    settings[k] = "off"
+                    settings[k], sources[k] = "off", name
                 continue
             if EVERYTHING.search(low) and not kinds:
                 settings.update(facts="on", upkeep="all", issue="on")
+                sources.update(dict.fromkeys(KINDS, name))
                 continue
             if not kinds and level in ("patch", "minor"):
                 kinds = ["upkeep"]
@@ -228,7 +275,8 @@ def parse_settings(texts):
                 continue
             for k in kinds:
                 settings[k] = (level or "all") if k == "upkeep" else "on"
-    return settings, unclear
+                sources[k] = name
+    return settings, unclear, sources
 
 
 def normalize_setting(kind, value):
@@ -246,10 +294,11 @@ def normalize_setting(kind, value):
     raise ValueError(f"--setting for {kind} is on or off")
 
 
-def decide(repo, kind, setting, bumps=(), unclear=(), guard_fn=None):
+def decide(repo, kind, setting, bumps=(), unclear=(), guard_fn=None, source=None):
     """The guard facts of REPO plus whether auto-merge is allowed for a PR of KIND."""
     enabled = setting not in ("off", None)
-    base = {"kind": kind, "setting": setting, "settings_unclear": list(unclear), "bumps": list(bumps)}
+    base = {"kind": kind, "setting": setting, "setting_source": source, "settings_unclear": list(unclear),
+            "bumps": list(bumps)}
     if not enabled:
         return {"repo": repo, **base, "guard_checked": False, "eligible": False,
                 "why_not": [f"auto-merge is off for {kind} PRs"]}
@@ -283,7 +332,8 @@ def main(argv=None):
     ap.add_argument("--setting", help="the resolved setting for the kind: on/off (facts, issue) or "
                                       "off/patch/minor/all (upkeep)")
     ap.add_argument("--settings-text", action="append", default=[], metavar="TEXT",
-                    help="plain-language Settings text: the owner's first, then the repo's (repeat)")
+                    help="plain-language Settings text, given twice: the owner's (owner_sadr_section) first, "
+                         "then the repo's (sadr_section). Pass \"\" for a null text")
     ap.add_argument("--bump", action="append", default=[], metavar="NAME=FROM..TO",
                     help="a version change in an upkeep PR (repeat). Prefix NAME with runtime: for a runtime")
     ap.add_argument("--json", action="store_true", help="print JSON (the default, kept for the shared interface)")
@@ -300,13 +350,13 @@ def main(argv=None):
         bumps = [parse_bump(b) for b in a.bump]
         unclear = []
         if a.setting is not None:
-            setting = normalize_setting(a.kind, a.setting)
+            setting, source = normalize_setting(a.kind, a.setting), "--setting"
         else:
-            settings, unclear = parse_settings(a.settings_text)
-            setting = settings[a.kind]
+            settings, unclear, sources = resolve_settings(a.settings_text)
+            setting, source = settings[a.kind], sources[a.kind]
     except ValueError as e:
         ap.error(str(e))
-    json.dump(decide(a.repo, a.kind, setting, bumps, unclear), sys.stdout, indent=2)
+    json.dump(decide(a.repo, a.kind, setting, bumps, unclear, source=source), sys.stdout, indent=2)
     print()
     return 0
 

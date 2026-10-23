@@ -8,6 +8,14 @@ script reports:
 - the default branch and the commit at its head
 - whether the root AGENTS.md exists there, and whether it has a ## Sadr
   section
+- the text of that ## Sadr section (sadr_section), or null without one
+- the owner's settings: whether OWNER/.github has a root AGENTS.md on its
+  default branch (owner_agents_md: true, false when the repo or the file
+  does not exist, null when the token cannot read it, with the reason in
+  owner_agents_md_error), and the text of its ## Sadr section
+  (owner_sadr_section, null without one). The script reads it once per
+  owner. A repo's Settings come from sadr_section first, then from
+  owner_sadr_section.
 - whether the repo opted out ("Sadr: off" in the ## Sadr section)
 - the open Sadr PRs: the facts PR (branch sadr/facts), the upkeep PR
   (branch sadr/upkeep) and the issue PRs (branches sadr/issue-<N> and
@@ -103,6 +111,33 @@ def sadr_section(text):
         if inside:
             lines.append(line)
     return lines
+
+
+def section_text(text):
+    """The text of the '## Sadr' section of an AGENTS.md text, or None without one.
+
+    A section with a heading and nothing under it gives ''.
+    """
+    if not has_section(text):
+        return None
+    return "\n".join(sadr_section(text)).strip("\n")
+
+
+def owner_agents(owner):
+    """Read the root AGENTS.md of OWNER/.github on its default branch.
+
+    Return {owner_agents_md, owner_sadr_section, owner_agents_md_error}.
+    owner_agents_md is True when the file exists, False when GitHub answers
+    404 (no .github repo, or no AGENTS.md in it), and None when GitHub
+    refuses or fails, with the reason in owner_agents_md_error.
+    """
+    try:
+        text = _gh.api(f"repos/{owner}/.github/contents/AGENTS.md", raw=True)
+    except _gh.GhError as e:
+        return {"owner_agents_md": None, "owner_sadr_section": None,
+                "owner_agents_md_error": f"cannot read {owner}/.github AGENTS.md: {e}"}
+    return {"owner_agents_md": text is not None, "owner_sadr_section": section_text(text),
+            "owner_agents_md_error": None}
 
 
 def has_section(text):
@@ -396,8 +431,12 @@ def head_sha(repo, branch):
     return ((ref or {}).get("object") or {}).get("sha") if isinstance(ref, dict) else None
 
 
-def inspect(info, at, owners=(), other_prefixes=()):
-    """Collect Sadr's facts about one in-scope repo."""
+def inspect(info, at, owners=(), other_prefixes=(), owner_info=None):
+    """Collect Sadr's facts about one in-scope repo.
+
+    OWNER_INFO is owner_agents() of the repo's owner. Without it, the
+    function reads OWNER/.github itself.
+    """
     repo = info["nameWithOwner"]
     branch = (info.get("defaultBranchRef") or {}).get("name") or "main"
     agents = _gh.api(f"repos/{repo}/contents/AGENTS.md?ref={branch}", raw=True)
@@ -417,6 +456,8 @@ def inspect(info, at, owners=(), other_prefixes=()):
         "pushed_at": info.get("pushedAt"),
         "has_agents_md": agents is not None,
         "has_sadr_section": has_section(agents),
+        "sadr_section": section_text(agents),
+        **(owner_info or owner_agents(repo.split("/")[0])),
         "opted_out": reason is not None,
         "opt_out_line": reason,
         "open_sadr_prs": [p for p in (facts, upkeep) if p] + features,
@@ -435,22 +476,23 @@ def inspect(info, at, owners=(), other_prefixes=()):
     }
 
 
-def error_row(info, err):
+def error_row(info, err, owner_info=None):
     """The row of a repo that GitHub failed on."""
+    owner = owner_info or {"owner_agents_md": None, "owner_sadr_section": None, "owner_agents_md_error": None}
     return {"repo": info["nameWithOwner"], "default_branch": (info.get("defaultBranchRef") or {}).get("name"),
             "default_head_sha": None, "pushed_at": info.get("pushedAt"), "has_agents_md": None,
-            "has_sadr_section": None, "opted_out": None, "opt_out_line": None, "open_sadr_prs": [],
+            "has_sadr_section": None, "sadr_section": None, **owner, "opted_out": None, "opt_out_line": None, "open_sadr_prs": [],
             "facts_pr": None, "upkeep_pr": None, "issue_prs": [], "feature_prs": [], "recently_claimed": None,
             "claims": [], "other_automation_prs": [], "related_repos": [], "related_repos_unreachable": [],
             "inferred_related_repos": [], "inferred_related_repos_unreachable": [], "error": str(err)}
 
 
-def safe_inspect(info, at, owners=(), other_prefixes=()):
+def safe_inspect(info, at, owners=(), other_prefixes=(), owner_info=None):
     """inspect(), with a GitHub failure kept in the row's error field."""
     try:
-        return inspect(info, at, owners, other_prefixes)
+        return inspect(info, at, owners, other_prefixes, owner_info)
     except _gh.GhError as e:
-        return error_row(info, e)
+        return error_row(info, e, owner_info)
 
 
 def discover(orgs=(), users=(), repos=(), workers=8, at=None, other_prefixes=()):
@@ -476,9 +518,17 @@ def discover(orgs=(), users=(), repos=(), workers=8, at=None, other_prefixes=())
             skipped.append({"repo": name, "reason": reason})
         else:
             infos.append(info)
+    # The owner's AGENTS.md is read once per owner, not once per repo.
+    by_owner = {}
+    for info in infos:
+        owner = info["nameWithOwner"].split("/")[0]
+        if owner.lower() not in by_owner:
+            by_owner[owner.lower()] = owner_agents(owner)
     with concurrent.futures.ThreadPoolExecutor(workers) as ex:
         owners = {*orgs, *users, *(r.split("/")[0] for r in repos)}
-        rows = list(ex.map(lambda i: safe_inspect(i, at, owners, other_prefixes), infos)) + failed
+        rows = list(ex.map(lambda i: safe_inspect(i, at, owners, other_prefixes,
+                                                  by_owner[i["nameWithOwner"].split("/")[0].lower()]),
+                           infos)) + failed
     rows.sort(key=lambda r: r["repo"].lower())
     skipped.sort(key=lambda r: r["repo"].lower())
     return rows, skipped

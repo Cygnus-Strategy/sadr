@@ -198,6 +198,46 @@ class DiscoverTest(unittest.TestCase):
         self.assertIn("2 repos in scope, 0 opted out, 3 skipped (forks, archived or empty), 1 with errors.", md)
         self.assertIn("| acme/lib | trunk | error: ", md)
 
+    def test_owner_and_repo_sections(self):
+        owner_md = ("# acme\n\nGuidance.\n\n## Sadr\n\n### Settings\nAuto-merge everything.\n\n"
+                    "## Other\nNot Sadr.\n")
+        api = FakeApi({
+            "repos/acme/.github/contents/AGENTS.md": owner_md,
+            "repos/acme/app/contents/AGENTS.md?ref=main": fixture("agents_on.md"),
+            "repos/acme/lib/contents/AGENTS.md?ref=trunk": "# lib\n",
+            "repos/acme/app/git/ref/heads/main": {"object": {"sha": "a" * 40}},
+        })
+        run = mock.Mock(return_value=fixture("repo_list.json"))
+        with mock.patch.object(_gh, "api", api), mock.patch.object(_gh, "run", run):
+            rows, _ = repos.discover(orgs=["acme"], at=NOW, workers=1)
+        app, lib = rows
+        # Read once per owner, from the default branch (no ref).
+        self.assertEqual(api.calls.count("repos/acme/.github/contents/AGENTS.md"), 1)
+        for row in (app, lib):
+            self.assertIs(row["owner_agents_md"], True)
+            self.assertEqual(row["owner_sadr_section"], "### Settings\nAuto-merge everything.")
+            self.assertIsNone(row["owner_agents_md_error"])
+        self.assertEqual(app["sadr_section"], "\n".join(repos.sadr_section(fixture("agents_on.md"))).strip("\n"))
+        self.assertTrue(app["sadr_section"])
+        self.assertIsNone(lib["sadr_section"])
+
+    def test_owner_without_file_or_unreadable(self):
+        with mock.patch.object(_gh, "api", FakeApi({})):
+            self.assertEqual(repos.owner_agents("acme"), {"owner_agents_md": False, "owner_sadr_section": None,
+                                                          "owner_agents_md_error": None})
+        api = FakeApi({"repos/acme/.github/contents/AGENTS.md": "# acme\n\nNo Sadr section here.\n"})
+        with mock.patch.object(_gh, "api", api):
+            self.assertEqual(repos.owner_agents("acme")["owner_sadr_section"], None)
+            self.assertIs(repos.owner_agents("acme")["owner_agents_md"], True)
+        api = FakeApi({"repos/acme/.github/contents/AGENTS.md": _gh.GhError("gh api: HTTP 403: Forbidden")})
+        with mock.patch.object(_gh, "api", api):
+            got = repos.owner_agents("acme")
+        self.assertIsNone(got["owner_agents_md"])
+        self.assertIsNone(got["owner_sadr_section"])
+        self.assertIn("HTTP 403", got["owner_agents_md_error"])
+        self.assertEqual(repos.section_text("## Sadr\n"), "")
+        self.assertIsNone(repos.section_text(None))
+
     def test_empty_owner_listing_is_suspect(self):
         run = mock.Mock(return_value="[]")
         api = FakeApi({"users/acme": {"public_repos": 12}})

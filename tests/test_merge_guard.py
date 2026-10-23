@@ -128,6 +128,20 @@ class KindTest(unittest.TestCase):
         res = merge_guard.decide("acme/app", "issue", "on", guard_fn=lambda r: ok)
         self.assertTrue(res["eligible"])
 
+    def test_owner_then_repo_sections_with_sources(self):
+        owner = "### Settings\nAuto-merge everything.\n\n### Build and test\n- Don't auto-merge anything that fails.\n"
+        repo = "### Build and test\n- make test\n\n### Settings\n- Enhancement PRs need review. Don't auto-merge enhancement PRs.\n"
+        self.assertEqual(merge_guard.settings_part(owner).strip(), "Auto-merge everything.")
+        self.assertEqual(merge_guard.settings_part("Auto-merge facts PRs."), "Auto-merge facts PRs.")
+        settings, unclear, sources = merge_guard.resolve_settings([owner, repo])
+        self.assertEqual(settings, {"facts": "on", "upkeep": "all", "issue": "off"})
+        self.assertEqual(sources, {"facts": "owner", "upkeep": "owner", "issue": "repo"})
+        self.assertEqual(unclear, [])
+        settings, _, sources = merge_guard.resolve_settings(["", ""])
+        self.assertEqual((settings["facts"], sources["facts"]), ("off", "default"))
+        settings, _, sources = merge_guard.resolve_settings(["", "### Settings\nAuto-merge facts PRs.\n"])
+        self.assertEqual((settings["facts"], sources["facts"], sources["upkeep"]), ("on", "repo", "default"))
+
     def test_main_with_kind(self):
         answers = {"repos/acme/app": REPO,
                    "repos/acme/app/branches/main/protection/required_status_checks": {"contexts": ["test"]},
@@ -137,6 +151,12 @@ class KindTest(unittest.TestCase):
                               "Auto-merge patch updates.", "--bump", "vite=7.1.0..7.1.1"])
         res = json.loads(out.getvalue())
         self.assertEqual((res["kind"], res["setting"], res["eligible"]), ("upkeep", "patch", True))
+        self.assertEqual(res["setting_source"], "settings text 1")
+        with mock.patch.object(_gh, "run", fake_run(answers)), mock.patch("sys.stdout", io.StringIO()) as out:
+            merge_guard.main(["--repo", "acme/app", "--kind", "facts", "--settings-text",
+                              "### Settings\nAuto-merge everything.", "--settings-text", ""])
+        res = json.loads(out.getvalue())
+        self.assertEqual((res["setting"], res["setting_source"], res["eligible"]), ("on", "owner", True))
         with mock.patch("sys.stdout", io.StringIO()) as out:
             merge_guard.main(["classify", "0.143.0", "0.148.0"])
         self.assertEqual(out.getvalue().strip(), "major")

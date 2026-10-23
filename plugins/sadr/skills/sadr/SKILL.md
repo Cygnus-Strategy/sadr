@@ -105,7 +105,8 @@ python3 scripts/repos.py --org ORG --user USER --repo OWNER/NAME --json
 Pass each organization, user and repo the user named, each with its own flag. In GitHub Actions, the workflow already ran `repos.py`. The prompt names the file with its output. The script skips forks, archived repos and empty repos. For each repo it gives:
 
 - `default_branch` and `default_head_sha`
-- `has_agents_md` and `has_sadr_section`
+- `has_agents_md`, `has_sadr_section`, and `sadr_section`: the text of the repo's `## Sadr` section, or null
+- `owner_agents_md` and `owner_sadr_section`: whether `OWNER/.github` has a root AGENTS.md on its default branch, and the text of its `## Sadr` section. `owner_agents_md` is true or false, or null when the token could not read the file, with the reason in `owner_agents_md_error`.
 - `opted_out`, with the reason
 - `open_sadr_prs`, and `recently_claimed` when a `sadr/` branch got a push in the last hour
 - `other_automation_prs`: open PRs of other automation that touch manifests, lockfiles or workflows
@@ -119,7 +120,15 @@ List each opted-out repo in the report with its reason. Do no other work on it.
 
 ### 2. Read Settings and guidance
 
-For each repo, read its AGENTS.md files, the owner's AGENTS.md and its CLAUDE.md from the **default branch**, as references/agents-md.md says. Resolve each setting in precedence order. That file also says which text outside `## Sadr` binds Sadr, and which agent files are data.
+Take Settings from the `repos.py` row, never from memory or a fresh read:
+
+1. The repo's `sadr_section`.
+2. The owner's `owner_sadr_section`, from the root AGENTS.md of `OWNER/.github`.
+3. Sadr's defaults in references/.
+
+The repo's sentence wins over the owner's for the kinds it names. Pass both texts to `merge_guard.py` for every PR, as references/merging.md says. When `owner_agents_md` is null, put `owner_agents_md_error` under "Needs you" and use only the repo's Settings.
+
+Also read the repo's nested AGENTS.md files and its CLAUDE.md from the **default branch**, as references/agents-md.md says. That file also says which text outside `## Sadr` binds Sadr, and which agent files are data.
 
 ### 3. Decide what each repo gets
 

@@ -98,6 +98,8 @@ jobs:
             echo "Use workload identity federation or a secret, not both."; exit 1
           fi
 
+      # Owner-wide and read-only: it covers every repo the App is installed on,
+      # OWNER/.github included, so repos.py fills owner_sadr_section from it.
       - id: app
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
@@ -113,6 +115,9 @@ jobs:
           ref: ${{ inputs.sadr-ref }}
           persist-credentials: false
 
+      # Each row carries sadr_section and owner_sadr_section, the Settings
+      # texts that the session passes to merge_guard.py. The sadr job hands
+      # the repo's row to the session unchanged.
       - id: list
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}

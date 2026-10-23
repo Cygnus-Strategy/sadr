@@ -19,7 +19,7 @@ The first release.
 - The skill and its run procedure: scope discovery on every run, one worker for each repo, preview mode, time and spend limits, and schedule caps.
 - Up to three independent PRs for each repo and run: one for AGENTS.md facts (`sadr/facts`), one for upkeep (`sadr/upkeep`), and one for each enhancement issue (`sadr/issue-<N>`). A repo with nothing to do gets no PR and no comment.
 - Building accepted enhancement issues, off by default.
-- Auto-merge through GitHub's required checks, with a separate setting for facts, upkeep and issue PRs, all off by default.
+- Auto-merge through GitHub's required checks, with a separate setting for facts, upkeep and issue PRs, all off by default. `repos.py` reads the owner's `OWNER/.github` AGENTS.md once per owner and gives each repo the repo's and the owner's `## Sadr` text. `merge_guard.py` resolves the setting from both and reports whether it came from the repo, the owner or Sadr's default.
 - A secrets check with gitleaks before every push.
 - The AGENTS.md conventions in `docs/agents-md.md`, with examples.
 - The reusable GitHub Actions workflows for one repo and for a whole organization or user account. Both take the Sadr release as a commit SHA, load the plugin at that SHA, and act through a GitHub App.

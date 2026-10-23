@@ -104,7 +104,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/sadr-run"
 
       # An owner-wide read-only token, only to see which related repos the
-      # App can reach. It never reaches the Sadr session.
+      # App can reach, and to read OWNER/.github AGENTS.md for repos.py's
+      # owner_sadr_section. It never reaches the Sadr session.
       - id: discovery-token
         if: steps.mode.outputs.app == 'true'
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0

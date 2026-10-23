@@ -66,7 +66,7 @@ An App token is scoped to repos and permissions when it is minted. Each repo's r
 | `SADR_APP_TOKEN` | the repo being worked on | the write permissions above |
 | `SADR_READ_TOKEN` | `OWNER/.github` and the related repos that the repo's `## Sadr` section declares | contents and metadata, read only |
 
-The org workflow also mints an owner-wide read-only token for discovery and the report. That token never reaches a worker.
+The org workflow also mints an owner-wide read-only token for discovery and the report. That token never reaches a worker. It reads `OWNER/.github` AGENTS.md for `repos.py`, so `owner_sadr_section` is filled before the session starts.
 
 Use `SADR_APP_TOKEN` for every write to the repo. Use `SADR_READ_TOKEN` only to read the repos it covers. Never use one repo's token for another repo. Never print a token, write it to a file, put it in a remote URL, a commit, a PR body or a comment.
 
@@ -84,7 +84,7 @@ An App token expires one hour after it is minted. A run can take six hours. So:
 A per-repo workflow can run with the workflow's own `GITHUB_TOKEN` and no App. Then `SADR_APP_TOKEN` and `SADR_READ_TOKEN` are empty, and four things do not work:
 
 - **Workflow files.** GitHub refuses a commit from `GITHUB_TOKEN` that changes `.github/workflows/`. Leave every workflow-file change out of the branch. Under "Needs you", list each change a maintainer must make, with the exact line, for example the pinned `uses:` line.
-- **Other repos.** `GITHUB_TOKEN` reads only its own repo. A private `OWNER/.github` or a private related repo is unreachable. Report each one under "Needs you".
+- **Other repos.** `GITHUB_TOKEN` reads only its own repo. A private `OWNER/.github` or a private related repo is unreachable. GitHub answers 404 for a private repo the token cannot see, so `repos.py` then reports `owner_agents_md` as false. Report each one under "Needs you", and say that the owner's Settings were not read when `OWNER/.github` is private.
 - **Push workflows after a merge.** GitHub starts no workflow for an event that `GITHUB_TOKEN` caused. A PR that auto-merge merges does not start the default branch's push workflows, such as a deploy. Say so in `## Merging`.
 
 - **Sadr's identity.** Sadr comments as `github-actions[bot]`. `commit.py` still creates the commits through the API with the author `Sadr`, and reports whether GitHub verified them.

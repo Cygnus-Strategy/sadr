@@ -58,7 +58,7 @@ Write every section in every PR. When a section has nothing to report, write `- 
 - <in a facts PR, each fact that Sadr wrote into the ## Sadr section. In another PR, "None." or a link to the facts PR>
 
 ## Merging
-- auto-merge: <the level for this kind of PR> (<where the setting came from>, <kind> PRs)
+- auto-merge: <the level for this kind of PR> (<repo Settings, owner Settings in OWNER/.github, or Sadr default, from setting_source in merge_guard.py>, <kind> PRs)
 
 ## Needs you
 - <each decision or step that only a maintainer can do>

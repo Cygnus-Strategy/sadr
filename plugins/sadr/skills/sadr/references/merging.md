@@ -14,7 +14,7 @@ Each kind of PR has its own setting. All three are off by default.
 | Upkeep PR (`sadr/upkeep`) | `off`, `patch`, `minor`, `all` | `patch`: only patch changes. `minor`: patch and minor changes, as below. `all`: every upkeep PR. |
 | Issue PR (`sadr/issue-<N>`) | `off`, `on` | `on`: every PR for an enhancement issue |
 
-Resolve each setting in precedence order: the repo's `### Settings`, then the owner's, then `off`. Read Settings from the default branch only. Settings are plain sentences, for example:
+Resolve each setting in precedence order: the repo's `### Settings`, then the owner's, then `off`. Read Settings from the default branch only. `repos.py` gives both texts in each repo's row: `sadr_section` for the repo, and `owner_sadr_section` for the owner's `OWNER/.github` AGENTS.md. Settings are plain sentences, for example:
 
 | Sentence | Facts | Upkeep | Issue |
 |---|---|---|---|
@@ -48,13 +48,16 @@ Before 1.0, a minor bump counts as major. For a `0.x` version, a change of the f
 
 The guards apply to every kind of PR. Check them only when the PR's setting is not `off`. Under `off`, Sadr turns nothing on, and none of these is a "Needs you" item.
 
-Read the repo's merge settings with:
+Resolve the setting and read the repo's merge settings with one call per PR:
 
 ```bash
-python3 scripts/merge_guard.py --repo OWNER/NAME --kind facts|upkeep|issue --json
+python3 scripts/merge_guard.py --repo OWNER/NAME --kind facts|upkeep|issue \
+  --settings-text "$OWNER_SADR_SECTION" --settings-text "$REPO_SADR_SECTION" --json
 ```
 
-It prints whether the repo allows auto-merge, the allowed merge methods, the number of required status checks (or `cannot_verify` with the reason), and `eligible`.
+Pass `--settings-text` exactly twice, in this order: first `owner_sadr_section`, then `sadr_section`. The script reads the owner's text first and the repo's second, so a later repo sentence wins. Pass `""` for a text that is null. Pass the whole section text. When it has a `### Settings` subsection, the script reads only that subsection. For an upkeep PR, add `--bump NAME=FROM..TO` for each version change.
+
+It prints `setting`, `setting_source` (`repo`, `owner` or `default`), whether the repo allows auto-merge, the allowed merge methods, the number of required status checks (or `cannot_verify` with the reason), and `eligible`. Any sentence it could not read is in `settings_unclear`. Put each one under "Needs you".
 
 Sadr leaves the PR for a maintainer when any of these is true:
 
@@ -91,7 +94,7 @@ In the degraded mode without an App, Sadr uses `GITHUB_TOKEN`, and a merge does 
 
 ## The PR body
 
-Every PR body says which setting applied, where it came from, and what Sadr did, in its `## Merging` section. For example:
+Every PR body says which setting applied, where it came from, and what Sadr did, in its `## Merging` section. Name the source from `setting_source`: `repo Settings`, `owner Settings` (with the `OWNER/.github` repo), or `Sadr default`. Write `Sadr default` only when neither text sets the kind. When `owner_agents_md` was null, say that Sadr could not read the owner's Settings. For example:
 
 ```
 ## Merging
@@ -112,6 +115,18 @@ Every PR body says which setting applied, where it came from, and what Sadr did,
 
 ```
 ## Merging
-- auto-merge: on (owner Settings, facts PRs)
+- auto-merge: on (owner Settings in acme/.github, facts PRs)
 - turned on auto-merge (merge)
+```
+
+```
+## Merging
+- auto-merge: off (repo Settings, issue PRs)
+- the owner's Settings in acme/.github say on. The repo's Settings win.
+```
+
+```
+## Merging
+- auto-merge: off (Sadr default)
+- could not read the owner's Settings in acme/.github: HTTP 403
 ```
