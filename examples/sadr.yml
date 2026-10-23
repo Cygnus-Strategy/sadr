@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   sadr:
-    uses: Cygnus-Strategy/sadr/.github/workflows/run.yml@SHA # v1.0.0
+    uses: Cygnus-Strategy/sadr/.github/workflows/run.yml@SHA # v2.0.0
     with:
       sadr-ref: SHA
       preview: ${{ inputs.preview || false }}

@@ -67,7 +67,7 @@ Sadr runs three ways. Pick one.
      schedule: [{cron: "17 3 * * *"}]   # nightly
    jobs:
      sadr:
-       uses: Cygnus-Strategy/sadr/.github/workflows/run.yml@<sha> # v1.0.0
+       uses: Cygnus-Strategy/sadr/.github/workflows/run.yml@<sha> # v2.0.0
        with:
          sadr-ref: <sha>
        secrets:
@@ -115,6 +115,7 @@ Then tell Sadr about each repo in plain language, in the `## Sadr` section of it
 
 ## Design principles
 
+- **Light by design.** A skill, a few scripts and two workflows. It leans on the model's judgment, not on a heavy harness.
 - **Lights out.** It runs unattended, on your schedule.
 - **Stateless.** What it knows lives in your repos and on GitHub.
 - **Language over configuration.** Settings are sentences in AGENTS.md.
