@@ -12,7 +12,7 @@ Each kind of PR has its own setting. All three are off by default.
 |---|---|---|
 | Facts PR (`sadr/facts`) | `off`, `on` | `on`: every facts PR |
 | Upkeep PR (`sadr/upkeep`) | `off`, `patch`, `minor`, `all` | `patch`: only patch changes. `minor`: patch and minor changes, as below. `all`: every upkeep PR. |
-| Issue PR (`sadr/issue-<N>`) | `off`, `on` | `on`: every PR for an enhancement issue |
+| Issue PR (`sadr/issue-<N>`) | `off`, `on` | `on`: every issue PR |
 
 Resolve each setting in precedence order: the repo's `### Settings`, then the owner's, then `off`. Read Settings from the default branch only. `repos.py` gives both texts in each repo's row: `sadr_section` for the repo, and `owner_sadr_section` for the owner's `OWNER/.github` AGENTS.md. Settings are plain sentences, for example:
 
@@ -61,12 +61,13 @@ It prints `setting`, `setting_source` (`repo`, `owner` or `default`), whether th
 
 Sadr leaves the PR for a maintainer when any of these is true:
 
-- The PR has an item under "Needs you" about the PR's own change. A cooldown exception and an unverified build target are always one. A gap for the whole account, such as Semgrep Secrets turned off, goes once in the run report and never blocks auto-merge.
+- The PR has an item under "Needs you" about the PR's own change. A cooldown exception is always one. A gap for the whole account, such as Semgrep Secrets turned off, goes once in the run report and never blocks auto-merge.
+- "Not done or not checked" names a build target or test suite that the change can affect and that Sadr could not run.
 - The build or the tests failed in the run.
 - `eligible` is false: the repo does not allow auto-merge, or the default branch has no ruleset or branch protection that requires a status check.
-- `merge_guard.py` reports `cannot_verify`. Neither branch protection nor a ruleset that Sadr can read shows a required check, and at least one of them was unreadable: GitHub refuses to show branch protection on a private repo of a free plan (HTTP 403), and shows classic protection only with the App's Administration permission. A readable ruleset that requires a check is enough. Without one, Sadr cannot prove that a check guards the merge, so it does not turn auto-merge on.
+- `merge_guard.py` reports `cannot_verify`. Neither branch protection nor a ruleset that Sadr can read shows a required check, and at least one of them was unreadable: GitHub refuses to show branch protection on a private repo of a free plan (HTTP 403), and shows classic protection only with the App's Administration (read) permission. An install that has not accepted that permission yet cannot read classic protection. A readable ruleset that requires a check is enough. Without one, Sadr cannot prove that a check guards the merge, so it does not turn auto-merge on.
 
-For each guard that blocks auto-merge, add an item under "Needs you" that says what to turn on, or that Sadr could not verify the protection and why.
+For each guard that blocks auto-merge, say why under `## Merging` with a `left for a maintainer:` line. Add a "Needs you" item only when the Settings ask for auto-merge on this kind of PR and a maintainer can fix the guard in this repo, for example "Require a status check on `main` with a ruleset." A missing App permission is a gap for the whole account. It goes in `account_gaps`, never in a PR. When the Settings leave auto-merge off, a guard needs no item.
 
 ## How Sadr turns on auto-merge
 

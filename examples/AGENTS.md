@@ -29,9 +29,9 @@ This repo builds the slicer command-line tool and its Cloudflare Worker.
 - `scripts/` runs only on a developer's machine. It never handles untrusted input.
 
 ### Settings
-- Auto-merge facts PRs, and upkeep PRs with minor updates. Enhancement PRs need review.
+- Auto-merge facts PRs, and upkeep PRs with minor updates. Issue PRs need review.
 - Stay on the Node LTS before the newest one.
 - Leave `workers-py` alone. Cloudflare pins it.
 - Request review from the CODEOWNERS for each changed path.
-- Build enhancement issues, at most two per run.
+- Build at most two issues per run.
 - Run at most once a day.

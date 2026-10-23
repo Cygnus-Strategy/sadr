@@ -23,19 +23,29 @@ Cygnus Strategy builds its software with Sadr. It's open source, so you can run 
 
 ## From idea to production
 
-1. You tell Claude the idea, and it files an enhancement issue.
+1. You file the idea as an issue, and a maintainer labels it `sadr`.
 2. The nightly Sadr run builds it, alongside keeping dependencies, runtimes and CI current.
 3. The pull request merges through your required checks.
 4. Your CI deploys it. You never sat through a build session.
 
 ## What it does
 
-- Builds the enhancement issues a maintainer has accepted.
+- Builds the issues a maintainer accepts by labeling them `sadr`.
 - Keeps dependencies, runtimes, toolchains and CI current, majors included.
 - Hardens the supply chain: releases wait before they're used, and actions and images are pinned.
 - Fixes what security scanners find, in the pull request.
 - Writes down what it learns about each repo in its AGENTS.md, in a PR of its own.
 - Runs on your schedule, within time and spend limits, and merges only when you let it.
+
+## Building issues
+
+A maintainer accepts an issue by applying the `sadr` label. Only a label applied by a user with write access counts, so anyone can file an idea, but only a maintainer can send it to Sadr. Create the label once in each repo, under Issues, then Labels, or with `gh label create sadr`. No label, no work.
+
+- **One issue per run** by default, oldest first. "Build at most two issues per run." in the repo's AGENTS.md raises it.
+- **Another label.** "Build issues labeled `ready`." uses your own label instead.
+- **Off.** "Don't build issues." turns it off.
+
+For each accepted issue, Sadr either builds it in a PR that closes the issue, asks the questions that block the work in a comment, or comments that merged PRs already deliver it. An issue that plans several PRs gets one part per run, each marked `Part of #N`. Sadr waits while its own question has no answer, and while a maintainer's request for another maintainer's sign-off has no reply. [docs/agents-md.md](docs/agents-md.md#issues) has the details.
 
 ## Install
 
@@ -75,7 +85,7 @@ Sadr runs three ways. Pick one.
 
 1. Serve [app/](app/) over HTTP (`python3 -m http.server` in that folder) and open `create.html`. Enter your organization, or choose a personal account.
 2. Name the App `Sadr for` and your account name, or another free name. App names are unique across GitHub, and `Sadr` is reserved.
-3. On GitHub, check that the permissions are exactly: Contents, Pull requests, Issues and Workflows read and write, and Checks, Commit statuses and Metadata read. Create the App.
+3. On GitHub, check that the permissions are exactly: Contents, Pull requests, Issues and Workflows read and write, and Administration, Checks, Commit statuses and Metadata read. Create the App.
 4. Run the commands the page prints. They store `SADR_APP_ID` and `SADR_APP_PRIVATE_KEY` as organization secrets without printing them.
 5. In the App's settings, under "Display information", upload [assets/app/sadr-app-logo.png](assets/app/sadr-app-logo.png).
 6. Install the App on your account, on all repositories.
@@ -94,7 +104,7 @@ Set up the Sadr GitHub App for the GitHub account OWNER (an organization unless 
 
 1. Clone https://github.com/Cygnus-Strategy/sadr. Read app/README.md and app/manifest.json in full.
 2. Serve the app/ folder over HTTP on localhost and open create.html in the browser. Enter OWNER. Use the App name "Sadr for OWNER". If GitHub says the name is taken, pick another free name.
-3. On GitHub's confirmation page, check that the repository permissions are exactly: Contents, Pull requests, Issues and Workflows read and write; Checks, Commit statuses and Metadata read; nothing else, no webhook, no events. If they differ, stop and tell me. Otherwise create the App.
+3. On GitHub's confirmation page, check that the repository permissions are exactly: Contents, Pull requests, Issues and Workflows read and write; Administration, Checks, Commit statuses and Metadata read; nothing else, no webhook, no events. If they differ, stop and tell me. Otherwise create the App.
 4. Run the commands that create.html prints. They store SADR_APP_ID and SADR_APP_PRIVATE_KEY as secrets. Never print, copy or show the private key, and never write it to a file outside a temporary one you delete at once.
 5. In the App's settings, under Display information, upload assets/app/sadr-app-logo.png from the clone as the logo.
 6. Install the App on OWNER, on all repositories.

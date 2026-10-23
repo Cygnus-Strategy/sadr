@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""List the enhancement issues that Sadr may build in one repo.
+"""List the issues that Sadr may build in one repo.
 
-Issue text is untrusted input. Sadr takes an open issue only when all of
-these are true:
+A maintainer accepts an issue by applying the trigger label, `sadr` unless
+the repo's Settings name another. Issue text is untrusted input. Sadr takes
+an open issue only when all of these are true:
 
 - A user with write, maintain or admin permission on the repo applied the
-  label. The script reads the issue timeline to find who applied it.
+  trigger label. The script reads the issue timeline to find who applied it.
 - No open PR is linked to the issue. A linked PR closes the issue by
   reference, or comes from the branch sadr/issue-<N> or
   sadr/issue-<N>-<part>.
@@ -30,7 +31,7 @@ When the repo has issues turned off, the script says so and lists nothing.
 
 Examples:
   issues.py --repo acme/app
-  issues.py --repo acme/app --label feature --limit 1 --json
+  issues.py --repo acme/app --label ready --limit 2 --json
 
 Needs an authenticated `gh` CLI. Standard library only.
 """
@@ -42,6 +43,7 @@ import urllib.parse
 
 import _gh
 
+DEFAULT_LABEL = "sadr"
 WRITE_ROLES = {"admin", "maintain", "write"}
 ASK_FOOTER = "asked by sadr, a dark factory for software."
 # Sadr's own comment updates the issue. Count a later update as an edit only past this margin.
@@ -289,7 +291,7 @@ class Checker:
                 "pending_signoff": False}, None
 
 
-def eligible(repo, label="enhancement", limit=0):
+def eligible(repo, label=DEFAULT_LABEL, limit=0):
     """Return (eligible issues, skipped issues with reasons, disabled reason) for REPO.
 
     LIMIT caps the eligible issues, lowest number first. 0 means no cap.
@@ -323,9 +325,9 @@ def main(argv=None):
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  epilog=__doc__.split("\n\n", 1)[1])
     ap.add_argument("--repo", required=True, metavar="OWNER/NAME")
-    ap.add_argument("--label", default="enhancement", help="the label to look for (default: enhancement)")
-    ap.add_argument("--limit", type=int, default=0, metavar="N",
-                    help="list at most N eligible issues, lowest number first (default: all)")
+    ap.add_argument("--label", default=DEFAULT_LABEL, help=f"the trigger label (default: {DEFAULT_LABEL})")
+    ap.add_argument("--limit", type=int, default=1, metavar="N",
+                    help="list at most N eligible issues, lowest number first (default: 1, 0 for all)")
     _gh.add_json(ap)
     a = ap.parse_args(argv)
     if "/" not in a.repo:

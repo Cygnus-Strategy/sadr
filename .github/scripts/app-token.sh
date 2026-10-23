@@ -29,7 +29,10 @@ read_repos=("$@")
 key=$(cat)
 api=https://api.github.com
 dir="$RUNNER_TEMP/sadr-token"
-write_perms='{"contents":"write","pull_requests":"write","issues":"write","workflows":"write","checks":"read","statuses":"read","metadata":"read"}'
+write_perms='{"contents":"write","pull_requests":"write","issues":"write","workflows":"write","administration":"read","checks":"read","statuses":"read","metadata":"read"}'
+# An install made before Administration (read) joined the manifest refuses a
+# token that asks for it, until the owner accepts the new permission.
+write_perms_old=$(jq -c 'del(.administration)' <<<"$write_perms")
 read_perms='{"contents":"read","metadata":"read"}'
 
 umask 077
@@ -69,7 +72,10 @@ mint() { # FILE PERMISSIONS REPO...
 }
 
 mint_all() {
-  mint "$dir/app" "$write_perms" "$name"
+  mint "$dir/app" "$write_perms" "$name" || {
+    echo "::warning::The Sadr App install lacks Administration (read). Accept the new permission in the installation settings. Sadr cannot read classic branch protection until then."
+    mint "$dir/app" "$write_perms_old" "$name"
+  }
   if [ ${#read_repos[@]} -gt 0 ]; then
     # A repo the installation cannot reach makes the whole request fail.
     # Sadr then reports the related repos as unreachable.

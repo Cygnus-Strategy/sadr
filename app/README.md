@@ -20,6 +20,7 @@ The manifest asks for these repository permissions and nothing else. [references
 | Pull requests | read and write |
 | Issues | read and write |
 | Workflows | read and write |
+| Administration | read |
 | Checks | read |
 | Commit statuses | read |
 | Metadata | read |
@@ -71,7 +72,8 @@ Never paste the key into a chat, an issue, a PR or a log.
 
 1. In the App's settings, under "Display information", upload `assets/app/sadr-app-logo.png`.
 2. Choose "Install App", pick your account, and install it on all repositories. To limit it, install it on the repos Sadr works on, the account's `.github` repo, and every repo that another repo lists under `### Related repos`.
-3. Optional: grant Administration (read) when your repos use classic branch protection. Without it, Sadr cannot see that protection and leaves auto-merge off. Rulesets need no extra permission.
+
+An App created from the v1.0.0 manifest lacks Administration (read). Add it in the App's settings, under "Permissions & events", then accept the request that GitHub shows on each installation. Until then, Sadr cannot read classic branch protection and leaves auto-merge off where only classic protection requires a check.
 
 ## Rotate or remove
 

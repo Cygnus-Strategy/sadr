@@ -42,10 +42,29 @@ Use the first source that answers:
 
 1. `### Build and test` in the repo's `## Sadr` section.
 2. The rest of the repo's AGENTS.md, CLAUDE.md, README and contributing guide.
-3. The test steps of the repo's CI workflows.
+3. The test, lint and type-check steps of the repo's CI workflows.
 4. The ecosystem's usual command, for example `uv run pytest`, `npm test`, `go test ./...`, `cargo test`, `swift test` or `./gradlew check`.
 
 When a repo has no tests, the check is that it builds, installs and loads cleanly. Say so in the PR. `pytest` exits with code 5 when it collects no tests. That means "no tests", not a failure. Write the command that worked into `### Build and test`, so that the next run does not search again.
+
+### Verification
+
+Verification proves that a change does not break the project before the PR opens. It is not a second CI, so it need not repeat every leg of a CI matrix. Do this for each repo:
+
+1. Build the repo's own development environment the way the repo defines it: devenv or Nix, Docker or compose, a Makefile, package scripts, or whatever AGENTS.md, the README and the CI workflows use. Install the tools it needs on the host, such as Nix and devenv, or Docker, at a release at least the cooldown age old.
+2. Inside that environment, run the test suites, linters and type checks that AGENTS.md and the CI workflows run.
+3. When people exercise the repo by running the app, run it once: start it against local services or compose, request a health route or the main route, check the answer, and stop it.
+
+Some commands stay off limits, whatever the repo calls them:
+
+- a command that deploys, publishes or releases
+- a command that writes to production or to shared remote data
+- a command that sends a message, such as an email, a chat post or a notification
+- a command that needs production credentials
+
+A script that only reads a public API is fine. Read a script's argument handling before you run it: a `--help` can start its default command. When the repo's own development scripts call a service that is off limits, start the local stand-in that the repo uses, such as a compose service, or skip that one call.
+
+When something cannot run on the host, such as a macOS-only build on Linux or a test that needs hardware, say under "Not done or not checked" exactly what did not run and why.
 
 ### Run only what a change can affect
 
@@ -139,7 +158,7 @@ For each exception:
 - Use the tool's exemption for one package. Never lower the global setting.
 - Cap the exemption at the fixed release. An exemption without a cap admits every future release of that package.
 - Put the comment `# sadr: cooldown exception GHSA-xxxx-xxxx-xxxx, lift when VERSION clears the cooldown` on the line above the cap, where the format allows comments. VERSION is the capped release. Name every advisory id.
-- List it under `- cooldown exceptions:` and under `## Holds` in the PR, with the advisory ids and the time it clears the cooldown: the release's publish time plus the cooldown, as a UTC timestamp. List it under "Needs you" too.
+- List it under `- cooldown exceptions:` and under `## Holds` in the PR, with the advisory ids and the time it clears the cooldown: the release's publish time plus the cooldown, as a UTC timestamp. List it under "Needs you" too, as one line that asks for a review.
 
 ### Sadr's cooldown caps
 
@@ -245,9 +264,9 @@ The repo's build and tests pass after each step.
 - Never loosen a linter, type checker or compiler setting to make the build green.
 - A change adds no new test or compiler warning. Fix a new deprecation warning in the same step.
 - When a change cannot be made green, step it back to the newest version that is green, and hold it as "Holds" says.
-- Never run a script that may call a live service, read stored credentials, or write outside the workspace during verification, unless `### Build and test` names it as safe. Read a script's argument handling before a smoke run: a `--help` can start its default command. List the scripts Sadr did not run under "Not done or not checked".
+- Build and run the project as "Verification" says. Never run a command that it puts off limits, unless `### Build and test` names it as safe.
 - When the default branch was already red before Sadr changed anything, say so under "Needs you" with the failing command. Do not count that failure against Sadr's changes.
-- When the host cannot run a check, such as a cross-compiler for another architecture, a release-only platform build or a test on hardware, run the strongest check the host can: compile for the targets it can, or run the unit tests without the device. Under "Needs you", list each target Sadr did not verify. Green then means green for what ran, and auto-merge stays off.
+- When the host cannot run a check, such as a cross-compiler for another architecture, a release-only platform build or a test on hardware, run the strongest check the host can: compile for the targets it can, or run the unit tests without the device. Under "Not done or not checked", list each target Sadr did not verify, and why. Green then means green for what ran, and auto-merge stays off.
 
 ## Holds
 
@@ -310,6 +329,7 @@ These notes are examples from earlier runs. They do not limit what Sadr handles.
 
 - A committed `flake.lock` or `devenv.lock` is the pin. Update it with the tool's own command and date the inputs it changes.
 - A lock that `.gitignore` excludes pins nothing. Put it under "Needs you".
+- When the repo has a `devenv.nix` or `flake.nix`, install Nix and devenv on the host, build the environment, and run the checks inside it, for example with `devenv shell -- COMMAND` or `devenv test`.
 - When the Nix environment and the project disagree on a runtime, for example Python 3.13 in `devenv.nix` and 3.15 in `pyproject.toml`, never commit a change that the Nix environment cannot build. Put the mismatch under "Needs you".
 
 **CI and services**
@@ -317,4 +337,4 @@ These notes are examples from earlier runs. They do not limit what Sadr handles.
 - Dependabot reads `cooldown:` with `default-days: 7` on each `updates` entry. Renovate reads `"minimumReleaseAge": "7 days"`.
 - Semgrep's `github-actions-mutable-action-tag` rule flags a tag pin. Fix the pin. Do not triage the finding.
 - Cloudflare Workers Builds ships its own npm and ignores `min-release-age`. Configure it in the Cloudflare dashboard and list it under "Needs you".
-- `apt-get install` and `brew install` on hosted runners take whatever the runner image's package index holds, outside every cooldown. So does a `-latest` runner label, which moves to a new OS image. Neither can be pinned by digest. Keep the repo's runner label, and list such installs under "Not done or not checked". The same applies to MSYS2 on Windows runners.
+- `apt-get install` and `brew install` on hosted runners take whatever the runner image's package index holds, outside every cooldown. So does a `-latest` runner label, which moves to a new OS image. Neither can be pinned by digest. Keep the repo's runner label. These floats are expected, and so is an image tag that floats inside its digest pin. Do not list them in the PR unless Settings ask for them. The same applies to MSYS2 on Windows runners.

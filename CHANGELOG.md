@@ -8,6 +8,25 @@ adopter's repos. So each release lists its policy changes:
 - A new rule or a stricter rule is a minor release.
 - A looser rule or a removed rule is a major release.
 
+## Unreleased
+
+### Changed
+
+- The Sadr App asks for Administration (read), so that `merge_guard.py` can read classic branch protection and the repo's merge settings. Existing installs must accept the new permission: add it in the App's settings, then approve the request that GitHub shows on each installation. Until then, the workflows mint the repo token without it, warn, and Sadr leaves auto-merge off where only classic protection requires a check.
+- `issues.py` looks for the label `sadr` by default and lists one issue unless `--limit` says otherwise.
+
+### Removed
+
+- The OpenSSF Scorecard workflow and its README badge.
+
+### Policy
+
+- Issues are triggered by a label. Sadr builds open issues labeled `sadr` by a user with write access, one per run by default. Applying the label is the acceptance, so the feature is on by default. "Build issues labeled `ready`." changes the label, "Build at most two issues per run." changes the limit, and "Don't build issues." turns it off. Sadr does not create the label.
+- Verification builds the repo's own development environment, such as devenv, Nix, Docker or compose, installs the tools it needs, runs the tests, linters and type checks that AGENTS.md and CI run, and starts the app once against local services when that is how the repo is exercised. Only commands that deploy, publish or release, write to production or shared remote data, send messages, or need production credentials stay off limits.
+- "Needs you" holds only actions a maintainer must take in the repo now. It never narrates what Sadr changed since the last run, never repeats a gap for the whole account, never lists a resolved item, and never mentions AGENTS.md conflicts between Sadr PRs. A cooldown exception is one line.
+- "Not done or not checked" names what could not run on the host and why. Expected floats, such as an image tag inside its digest pin or the `ubuntu-latest` label, and gaps for the whole account stay out of it.
+- Gaps for the whole account, such as a missing `SEMGREP_APP_TOKEN`, an unreadable `OWNER/.github` or a missing App permission, go only in the run report. So do commits that GitHub did not verify.
+
 ## v1.0.0 (2026-10-23)
 
 The first release.

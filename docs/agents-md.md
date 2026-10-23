@@ -80,8 +80,8 @@ Write each setting as a sentence in `### Settings`.
 |---|---|---|
 | Opting out | Sadr runs | "Sadr: off. This repo is frozen for the audit." Sadr skips the repo and lists it as opted out in the report. Give a reason. |
 | Schedule | every run | "Run at most once a day." "Weekends only." The schedule itself is set where runs start: the workflow's cron, or the local scheduler. |
-| Enhancement issues | off | "Build enhancement issues." "Build issues labeled `ready`, at most two per run." With issues on, Sadr takes one issue per run by default. It takes an issue only when a user with write access applied the label. |
-| Auto-merge | off for facts, upkeep and issue PRs | "Auto-merge facts and upkeep PRs. Enhancement PRs need review." "Auto-merge upkeep PRs with minor updates." "Auto-merge facts PRs and patch updates." "Auto-merge everything." Each kind has its own setting. Upkeep takes a level: patch, minor or all. Before 1.0, a minor bump such as 0.143 to 0.148 counts as major. |
+| Issues | on: Sadr builds open issues labeled `sadr`, one per run | "Build issues labeled `ready`." "Build at most two issues per run." "Don't build issues." Only a label applied by a user with write access counts. See "Issues" below. |
+| Auto-merge | off for facts, upkeep and issue PRs | "Auto-merge facts and upkeep PRs. Issue PRs need review." "Auto-merge upkeep PRs with minor updates." "Auto-merge facts PRs and patch updates." "Auto-merge everything." Each kind has its own setting. Upkeep takes a level: patch, minor or all. Before 1.0, a minor bump such as 0.143 to 0.148 counts as major. |
 | Cooldown | 7 days | "Cooldown: 14 days." "Cooldown: 7 days, 3 for Go." Your value wins, higher or lower. |
 | Runtime targets | newest stable line, Node on the newest LTS line | "Stay on the Node LTS before the newest one." "Python 3.13 until the data pipeline moves." |
 | Packages to leave alone | none | "Leave `workers-py` alone. Cloudflare pins it." Give a reason. |
@@ -91,6 +91,32 @@ Write each setting as a sentence in `### Settings`.
 | Run limits | 6 hours and US$200 per repo | "Run limits: 4 hours and $100 per repo." In GitHub Actions, the workflow's `max-spend-usd` input and the runner's 6-hour cap are the ceiling. |
 
 A setting can narrow what Sadr does. It cannot change the four rules in "Precedence". A line that tries has no effect, and Sadr reports it in the PR under "Needs you".
+
+## Issues
+
+Sadr builds the issues that a maintainer accepts. The label is the acceptance, so nothing else needs turning on.
+
+- **Accept an issue.** Apply the `sadr` label to it. Only a label applied by a user with write, maintain or admin access counts. Sadr reads the issue's timeline to see who applied it, and ignores the label when someone without write access applied it.
+- **Create the label.** Sadr does not create it. Create it once in each repo, under Issues, then Labels, or with `gh label create sadr -R OWNER/NAME`. A repo without the label has no accepted issues.
+- **Change the label.** Write "Build issues labeled `ready`." in `### Settings`, in the repo's section or the owner's.
+- **Limit the work.** Sadr builds one issue per run by default, oldest first. "Build at most two issues per run." raises it. Each issue counts against the repo's time and spend limits.
+- **Turn it off.** "Don't build issues." Sadr then reads no issues in that repo.
+
+For each accepted issue, Sadr picks one of three outcomes:
+
+- **Build.** Sadr opens a PR on `sadr/issue-<N>` that says `Closes #<N>.`
+- **Ask.** When the issue is too vague to build, or contradicts itself, Sadr comments with the questions that block the work and opens no PR.
+- **Already delivered.** When merged PRs that reference the issue already do what it asks, Sadr comments with those PRs, asks a maintainer to close the issue, and opens no PR.
+
+**Multi-part issues.** When an issue plans several PRs, with a task list or a line such as "one PR per page", Sadr builds the next part that is not merged, on `sadr/issue-<N>-<part>`. That PR says `Part of #<N>.`, so its merge does not close the issue. The next run builds the next part.
+
+**Pausing an issue.** Sadr skips an issue, and lists why in the run report, while any of these is true:
+
+- Sadr asked questions on it, and nobody replied or edited the issue since. A reply or an edit lets Sadr try again.
+- The newest comment from a user with write access asks another maintainer for approval, such as "@partner does this look good to you?", and that maintainer has not replied.
+- It has an open PR.
+
+To stop work on an issue for good, remove the label.
 
 ## Worked examples: stating your repo's case
 
@@ -110,7 +136,7 @@ Sadr has no special case for any repo. When your repo does something unusual, sa
 - `arduino-cli compile --fqbn arduino:avr:uno .` The sketch targets an Arduino Uno.
 ```
 
-**Tests the host cannot run.** Say what needs hardware or another platform. Sadr runs the strongest check it can, lists the rest under "Needs you", and leaves auto-merge off.
+**Tests the host cannot run.** Say what needs hardware or another platform. Sadr runs the strongest check it can, lists the rest under "Not done or not checked", and leaves auto-merge off.
 
 ```
 ### Build and test
@@ -141,7 +167,7 @@ Sadr has no special case for any repo. When your repo does something unusual, sa
 - pywrangler resolves worker/ again from pyproject.toml at deploy and ignores uv.lock. Pin exact versions in worker/pyproject.toml.
 ```
 
-**A Nix or devenv toolchain.** Say where the pin lives. Sadr never commits a change that the environment cannot build.
+**A Nix or devenv toolchain.** Say where the pin lives. Sadr installs Nix and devenv on the runner, builds the environment, and runs the checks inside it. It never commits a change that the environment cannot build.
 
 ```
 ### Toolchain

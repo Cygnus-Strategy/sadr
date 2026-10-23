@@ -24,6 +24,7 @@ NAMES = {
     "Pull requests": "pull_requests",
     "Issues": "issues",
     "Workflows": "workflows",
+    "Administration": "administration",
     "Checks": "checks",
     "Commit statuses": "statuses",
     "Metadata": "metadata",

@@ -6,7 +6,7 @@ A repo's AGENTS.md and its owner's AGENTS.md win over every rule in this file, w
 
 ## Without a token
 
-When `SEMGREP_APP_TOKEN` is not set, Sadr runs every other step. In the PR, write `- None.` under `## Security findings`. Under "Not done or not checked", write that Sadr did not read scanner findings. Under "Needs you", ask for the `SEMGREP_APP_TOKEN` secret. Never ask for the token's value in a PR or a comment.
+When `SEMGREP_APP_TOKEN` is not set, Sadr runs every other step. In the PR, write `- None.` under `## Security findings`. Under "Not done or not checked", write that Sadr did not read scanner findings. List the missing `SEMGREP_APP_TOKEN` secret once in the run report, as a gap for the whole account, not in the PR. Never ask for the token's value in a PR or a comment.
 
 ## The findings a worker starts from
 
@@ -109,7 +109,7 @@ A repo is covered when all of these are true:
 2. **Every product on.** Code, Supply Chain and Secrets are each enabled for the project. Read the products from the baseline's log. A product that is off is a gap.
 3. **Every language parsed.** The languages and lockfiles that the baseline scanned cover the repo's source languages and every lockfile in the tree. Compare them. A language Semgrep does not support, such as Arduino `.ino` files, or a lockfile it does not parse, such as `deno.lock` or a uv script lock, is a gap. The cooldown checks still cover such a lockfile through `lockage.py`.
 
-List each gap under "Not done or not checked". A workflow file alone is not coverage:
+List each gap of this repo under "Not done or not checked". A gap for the whole Semgrep deployment goes only in the run report. A workflow file alone is not coverage:
 
 - A workflow that runs `semgrep scan` keeps its results local. Only `semgrep ci` sends them to the platform.
 - A job that passes with findings hides them.
@@ -119,7 +119,7 @@ When a repo is not covered:
 
 - When the owner uses Semgrep's managed scans, a maintainer adds or fixes the repo in Semgrep. A project with a recent scan and no Semgrep workflow in the repo is a managed scan. Put that under "Needs you".
 - Change the repo's Semgrep workflow only when the scan is stale and the workflow is the cause, for example a `paths:` filter that skipped the head commit. A trigger that could fall behind but did not is not a reason for a PR. When Sadr does change it, `.github/workflows/semgrep.yml` runs `semgrep ci` in the `semgrep/semgrep` container, pinned by digest, on `pull_request`, on every push to the default branch without a path filter, and on a daily schedule at a random minute. The repo needs the `SEMGREP_APP_TOKEN` Actions secret. Check with `gh secret list -R OWNER/NAME`. If the secret is missing, put it under "Needs you". Never set a secret yourself.
-- A gap for the whole Semgrep deployment, such as Secrets not enabled, goes once in the run report, not in each PR. It never blocks auto-merge. A product that is off for one project goes under "Needs you" in that repo's PR.
+- A gap for the whole Semgrep deployment, such as Secrets not enabled, goes once in the run report and in no PR section, not even "Not done or not checked". It never blocks auto-merge. A product that is off for one project goes under "Needs you" in that repo's PR.
 
 ## Dependency counts
 

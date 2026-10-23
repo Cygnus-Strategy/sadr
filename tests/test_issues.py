@@ -8,7 +8,7 @@ import issues
 FOOTER = "Asked by [Sadr](https://sadr.cygnusstrategy.com), a dark factory for software."
 
 
-def labeled(login, name="enhancement"):
+def labeled(login, name="sadr"):
     return {"event": "labeled", "label": {"name": name}, "actor": {"login": login}}
 
 
@@ -22,10 +22,10 @@ def issue(n, title="Feature", updated="2026-10-20T00:00:00Z"):
 
 class PureTest(unittest.TestCase):
     def test_last_labeled_event_counts(self):
-        tl = [labeled("maint"), {"event": "unlabeled", "label": {"name": "enhancement"}, "actor": {"login": "maint"}},
+        tl = [labeled("maint"), {"event": "unlabeled", "label": {"name": "sadr"}, "actor": {"login": "maint"}},
               labeled("stranger"), labeled("maint", "bug")]
-        self.assertEqual(issues.labeled_by(tl, "Enhancement"), "stranger")
-        self.assertIsNone(issues.labeled_by([labeled("x", "bug")], "enhancement"))
+        self.assertEqual(issues.labeled_by(tl, "Sadr"), "stranger")
+        self.assertIsNone(issues.labeled_by([labeled("x", "bug")], "sadr"))
 
     def test_can_write(self):
         self.assertTrue(issues.can_write({"permission": "write", "role_name": "maintain"}))
@@ -69,7 +69,7 @@ class EligibleTest(unittest.TestCase):
             "repos/acme/app/collaborators/stranger/permission": {"permission": "read", "role_name": "read"},
         })
         with mock.patch.object(_gh, "api", api), mock.patch.object(_gh, "graphql", graphql):
-            ok, skipped, _ = issues.eligible("acme/app", "enhancement")
+            ok, skipped, _ = issues.eligible("acme/app", "sadr")
         self.assertEqual(ok, [{"number": 1, "title": "Feature", "url": "https://github.com/acme/app/issues/1",
                                "labeled_by": "maint", "merged_prs": [], "branches": [], "parts": None,
                                "pending_signoff": False}])
@@ -77,7 +77,7 @@ class EligibleTest(unittest.TestCase):
         self.assertIn("no write access", reasons[2])
         self.assertIn("pull/50", reasons[3])
         self.assertIn("pull/9", reasons[4])
-        self.assertIn("no 'enhancement' labeled event", reasons[5])
+        self.assertIn("no 'sadr' labeled event", reasons[5])
         self.assertIn("asked a question", reasons[6])
         self.assertNotIn(7, reasons)
         # One permission lookup per user.
@@ -89,6 +89,17 @@ class EligibleTest(unittest.TestCase):
         with mock.patch.object(_gh, "api", api):
             issues.eligible("acme/app", "good idea")
         self.assertIn("labels=good%20idea", api.calls[1])
+
+    def test_default_label_is_sadr_and_cli_takes_one_issue(self):
+        api = FakeApi({"repos/acme/app/pulls": [], "repos/acme/app": {"has_issues": True},
+                       "repos/acme/app/issues": []})
+        with mock.patch.object(_gh, "api", api):
+            issues.eligible("acme/app")
+        self.assertIn("labels=sadr&", api.calls[1])
+        with mock.patch.object(issues, "eligible", return_value=([], [], None)) as el, \
+                mock.patch("sys.stdout"), mock.patch("sys.stderr"):
+            issues.main(["--repo", "acme/app"])
+        el.assert_called_once_with("acme/app", "sadr", 1)
 
     def test_issues_disabled(self):
         api = FakeApi({"repos/acme/app": {"has_issues": False}})

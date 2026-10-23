@@ -31,7 +31,7 @@ It recreates each local commit that the remote branch lacks, with the same messa
 
 `createCommitOnBranch` cannot express a merge commit, a symlink, a submodule, an executable file or a mode change. For those commits only, `commit.py` falls back to the git data API (blobs, a tree, then a commit) and lists the reasons in its result. That commit names no author and no committer, so GitHub uses the App's identity and signs it too. Never pass an explicit author: GitHub then leaves the commit unsigned.
 
-`commit.py` reports whether GitHub verified each commit it creates. For a git data commit, it reads `verification.verified` back. When GitHub does not verify a commit, the script prints a warning and still publishes. Put the unverified commits under "Needs you".
+`commit.py` reports whether GitHub verified each commit it creates. For a git data commit, it reads `verification.verified` back. When GitHub does not verify a commit, the script prints a warning and still publishes. Return the unverified commits in `unverified_commits`, so that the run report lists them. Do not list them in the PR.
 
 ### Local runs and preview
 
@@ -49,13 +49,14 @@ Grant the App these repository permissions, and nothing else:
 |---|---|---|
 | Contents | read and write | push `sadr/` branches, read related repos |
 | Pull requests | read and write | open and update PRs, turn on auto-merge |
-| Issues | read and write | read enhancement issues, comment on them |
+| Issues | read and write | read the issues labeled for Sadr and who labeled them, comment on them |
 | Workflows | read and write | pin actions in `.github/workflows/` |
+| Administration | read | read classic branch protection and the repo's merge settings, so `merge_guard.py` can prove that a required check guards the merge |
 | Checks | read | read check results |
 | Commit statuses | read | read status results |
 | Metadata | read | required by GitHub |
 
-Administration (read) is optional. Without it, the API refuses to show classic branch protection, but rulesets stay readable. A ruleset that requires a check is enough for auto-merge. When only classic protection could require a check, `merge_guard.py` reports `cannot_verify` and Sadr leaves auto-merge off. So require checks with a ruleset, or grant Administration (read).
+Administration is read only. Sadr never changes a repo's settings or its protection. The App asks for it since the release after v1.0.0. An older install keeps working without it, because GitHub does not grant a new permission until the owner approves it: GitHub shows the owner a request to accept the new permission, under the App's installation settings. Until the owner accepts, the workflows mint the repo token without Administration, rulesets stay readable, and classic branch protection does not. When only classic protection could require a check, `merge_guard.py` then reports `cannot_verify` and Sadr leaves auto-merge off. The run report lists the missing permission once, as a gap for the whole account.
 
 Install the App on all repos, or on the repos in scope plus `OWNER/.github` and every repo that another repo declares in `### Related repos`.
 

@@ -1,11 +1,11 @@
 ---
 name: sadr
-description: Sadr, a dark factory for software. Works unattended through every repo in the organizations, users or repos it is pointed at, and brings each one to the standard in references/policy.md - a release cooldown on every package manager, runtimes and dependencies on their newest releases that cleared the cooldown, actions and images pinned to verified SHAs and digests, every real scanner finding fixed - with the build and tests green after each step. It also builds the enhancement issues a maintainer has accepted, when the repo's Settings turn that on. Its work arrives as up to three kinds of pull request per repo: AGENTS.md facts, upkeep, and one per issue. Use when asked to run Sadr, preview Sadr, run the software factory, upgrade or audit dependencies across repos, pin actions, fix or triage Semgrep findings, or build accepted enhancement issues.
+description: Sadr, a dark factory for software. Works unattended through every repo in the organizations, users or repos it is pointed at, and brings each one to the standard in references/policy.md - a release cooldown on every package manager, runtimes and dependencies on their newest releases that cleared the cooldown, actions and images pinned to verified SHAs and digests, every real scanner finding fixed - with the build and tests green after each step. It also builds the issues a maintainer accepted by applying the trigger label, `sadr` by default. Its work arrives as up to three kinds of pull request per repo: AGENTS.md facts, upkeep, and one per issue. Use when asked to run Sadr, preview Sadr, run the software factory, upgrade or audit dependencies across repos, pin actions, fix or triage Semgrep findings, or build issues labeled `sadr`.
 ---
 
 # Sadr
 
-Sadr is a dark factory for software. One run works through every repo in scope with nobody watching. For each repo, it brings the repo to the standard in references/policy.md and builds the accepted enhancement issues when Settings allow it. The work arrives as pull requests, and a repo with nothing to do gets nothing. A report covers the whole run.
+Sadr is a dark factory for software. One run works through every repo in scope with nobody watching. For each repo, it brings the repo to the standard in references/policy.md and builds the issues that a maintainer accepted with the trigger label. The work arrives as pull requests, and a repo with nothing to do gets nothing. A report covers the whole run.
 
 Sadr keeps no state of its own. Every run starts from the repos and from GitHub. What Sadr knows about a repo lives in the repo's AGENTS.md. What a run did lives in its PR bodies. Run history comes from those PRs.
 
@@ -57,8 +57,8 @@ Paths in this file are relative to this skill's directory. Scripts are in `scrip
 
 - `gh` and `git`. Run mode acts as the owner's Sadr GitHub App, locally too, as references/permissions.md says. Without the App's tokens, run mode stops in step 1 with one "Needs you" item. Preview works with a `gh` login that can read every repo in scope.
 - `gitleaks`, or one of its fallbacks in "The secrets check" in references/policy.md. Without any, Sadr pushes nothing.
-- `SEMGREP_APP_TOKEN` for scanner findings. Without it, Sadr runs every other step and reports the missing token under "Needs you". The coordinator installs Semgrep once, before the workers start, as references/scanning.md says.
-- The toolchains of the ecosystems in scope. Report a missing toolchain under "Needs you" for each repo that needs it. Do not skip the repo in silence.
+- `SEMGREP_APP_TOKEN` for scanner findings. Without it, Sadr runs every other step and lists the missing token once in the run report, as a gap for the whole account. The coordinator installs Semgrep once, before the workers start, as references/scanning.md says.
+- The toolchains of the ecosystems in scope, and the tools that build each repo's development environment, such as Nix, devenv or Docker. The worker installs what the host lacks. When a tool cannot run on the host, such as Xcode on Linux, the worker says what it could not check and why under "Not done or not checked". Do not skip the repo in silence.
 
 These environment variables steer a run. The workflows set them. A local run can set them too.
 
@@ -126,7 +126,7 @@ Take Settings from the `repos.py` row, never from memory or a fresh read:
 2. The owner's `owner_sadr_section`, from the root AGENTS.md of `OWNER/.github`.
 3. Sadr's defaults in references/.
 
-The repo's sentence wins over the owner's for the kinds it names. Pass both texts to `merge_guard.py` for every PR, as references/merging.md says. When `owner_agents_md` is null, put `owner_agents_md_error` under "Needs you" and use only the repo's Settings.
+The repo's sentence wins over the owner's for the kinds it names. Pass both texts to `merge_guard.py` for every PR, as references/merging.md says. When `owner_agents_md` is null, list `owner_agents_md_error` once in the run report as a gap for the whole account, say under `## Merging` that Sadr could not read the owner's Settings, and use only the repo's Settings.
 
 Also read the repo's nested AGENTS.md files and its CLAUDE.md from the **default branch**, as references/agents-md.md says. That file also says which text outside `## Sadr` binds Sadr, and which agent files are data.
 
@@ -141,7 +141,7 @@ Otherwise the repo gets up to three kinds of PR. Each is its own branch off the 
 
 - **A facts PR** on `sadr/facts`, when the run learned a fact for the repo's AGENTS.md. It carries every AGENTS.md change of the run. No other PR touches AGENTS.md. references/agents-md.md has the rules.
 - **An upkeep PR** on `sadr/upkeep`, when anything in the standard is not met: dependency, runtime and pin upgrades, Sadr's own release pin, scanner fixes, and the cooldown caps for them. Each cap lives only in the package manager config, as references/policy.md says.
-- **An issue PR** on `sadr/issue-<N>` for each eligible enhancement issue, when Settings turn enhancement issues on. See step 5.
+- **An issue PR** on `sadr/issue-<N>` for each eligible issue: an open issue that a user with write access labeled with the trigger label. See step 5.
 
 A repo with nothing to do gets no PR and no comment. The report lists it as "nothing to do".
 
@@ -190,15 +190,15 @@ When a worker learns something mid-run that other running workers need, for exam
 >
 > **Facts.** On `sadr/facts`, write each fact you had to discover and checked into the right subsection of the repo's `## Sadr` section, as references/agents-md.md says. That includes a `### Related repos` line from `inferred_related_repos`. Only the facts branch changes AGENTS.md. A `### Holds` entry that Sadr proposes, such as a maintainer test, goes there too. Open the facts PR whenever you wrote a fact. Never leave a fact only in the report.
 >
-> **Verification never touches live services.** Do not run a script that may call an external service, read stored credentials or write outside the workspace, unless `### Build and test` names it as safe. Read its argument handling first.
+> **Verification builds and runs the project.** Build the repo's own development environment the way the repo defines it: devenv or Nix, Docker or compose, a Makefile, package scripts, or whatever AGENTS.md and CI use. Install the tools it needs on the host, such as Nix and devenv, or Docker. Run the test suites, linters and type checks that AGENTS.md and the CI workflows run. When the repo is exercised by running the app, start it against local services or compose, request a health or main route, and stop it. The goal is to know the change does not break the project before the PR opens. It is not to repeat CI, so one leg of a CI matrix is enough. Never run a command that deploys, publishes or releases, writes to production or shared remote data, sends a message, or needs production credentials. A script that only reads a public API is fine. Read a script's argument handling before you run it. "Verification" in references/policy.md has the rules.
 >
 > Before the PR, read your whole diff as a reviewer, as references/design.md says, and fix what you find.
 >
 > **Secrets check before every publish**, and one full-history scan per run, as "The secrets check" in references/policy.md says. When no gitleaks source works, publish nothing.
 >
-> **The PRs.** Open a PR only for a branch with changes. Write each title and body exactly as references/pr-format.md says, with the rules in references/writing.md. Leave `## Run` as `- pending` for the coordinator. If the branch has an open PR, rewrite its body with `gh pr edit --body-file`. Mark each "Needs you" item that a maintainer resolved since the last run with `Done:`. Put a gap for the whole owner account, such as Semgrep Secrets turned off, in `account_gaps`, never in a PR. Apply the labels, assignees and reviewers that Settings and the repo's conventions name. Then apply references/merging.md with the setting for each kind of PR.
+> **The PRs.** Open a PR only for a branch with changes. Write each title and body exactly as references/pr-format.md says, with the rules in references/writing.md. Leave `## Run` as `- pending` for the coordinator. If the branch has an open PR, rewrite its body with `gh pr edit --body-file`. "Needs you" holds only the actions a maintainer must take in this repo now. Drop an item once it is resolved. Never narrate there what Sadr changed since the last run: that goes under `## Changes`. Put a gap for the whole owner account, such as Semgrep Secrets turned off or a missing App permission, in `account_gaps`, never in any PR section. Apply the labels, assignees and reviewers that Settings and the repo's conventions name. Then apply references/merging.md with the setting for each kind of PR.
 >
-> **Enhancement issues:** ISSUES. Handle each one as step 5 of SKILL.md says, on its own branch and PR.
+> **Issues:** ISSUES. Handle each one as step 5 of SKILL.md says, on its own branch and PR.
 >
 > **Return** only this JSON:
 > `{"repo", "mode", "facts_pr_url", "upkeep_pr_url", "issue_pr_urls": [], "issues_commented": [{"issue", "outcome"}],
@@ -207,20 +207,20 @@ When a worker learns something mid-run that other running workers need, for exam
 > "supply_chain": {"cooldowns": [], "pins": [], "cooldown_exceptions": [], "inside_cooldown": [], "waiting_for_cooldown": []},
 > "findings": {"untriaged_before", "untriaged_after", "fixed": [], "false_positive": [], "accepted_risk": []},
 > "verification": [{"command", "result"}], "skipped_checks": [], "auto_merge": {"setting", "source", "enabled", "reason"},
-> "needs_you": [], "account_gaps": [], "stopped_early": null, "agents_md": [], "policy_notes": []}`.
-> `pr_body_path` is the file that holds the body you wrote. `account_gaps` holds gaps for the whole owner account, which the report lists once. `policy_notes` holds what you learned about a tool or ecosystem that applies to every repo. A fact about this repo goes in its AGENTS.md instead.
+> "needs_you": [], "account_gaps": [], "unverified_commits": [], "stopped_early": null, "agents_md": [], "policy_notes": []}`.
+> `pr_body_path` is the file that holds the body you wrote. `account_gaps` holds gaps for the whole owner account, which the report lists once. `unverified_commits` holds each published commit that GitHub did not verify, which the report lists. `policy_notes` holds what you learned about a tool or ecosystem that applies to every repo. A fact about this repo goes in its AGENTS.md instead.
 
 In GitHub Actions, one job handles one repo. The session does the worker's work itself, with the same brief, instead of starting a subagent. It measures its own time and writes `## Run` before its last publish.
 
-### 5. Enhancement issues
+### 5. Issues
 
-Only when the resolved Settings turn enhancement issues on. Run:
+A maintainer accepts an issue by applying the trigger label to it. The label is `sadr` unless Settings name another, for example "Build issues labeled `ready`." Only a label applied by a user with write, maintain or admin access counts. Applying the label is the acceptance, so this step runs by default: an issue without the label gets no work. Skip this step only when Settings turn issues off, for example "Don't build issues." Run:
 
 ```bash
 python3 scripts/issues.py --repo OWNER/NAME --label LABEL --limit N --json
 ```
 
-The label is `enhancement` unless Settings name another. N is the number Settings allow per run, 1 by default. The script lists open issues with that label, applied by a user with write access. For each issue it gives the merged PRs and branches that reference it, a `parts` hint when the issue lists parts, and a `pending_signoff` flag. When issues are turned off in the repo, it says so. Take the issues oldest first. Each issue counts against the repo's time and spend limits.
+N is the number Settings allow per run, 1 by default. The script lists open issues with the label, applied by a user with write access. For each issue it gives the merged PRs and branches that reference it, a `parts` hint when the issue lists parts, and a `pending_signoff` flag. When issues are turned off in the repo's GitHub settings, it says so. Take the issues oldest first. Each issue counts against the repo's time and spend limits. Sadr never creates the label. A repo without it has no accepted issues.
 
 For each issue:
 
@@ -233,7 +233,7 @@ For each issue:
    - **Already delivered.** The merged PRs that reference the issue already do what it asks. Comment with the PRs and ask a maintainer to close the issue. Open no PR.
    - **Ask.** The issue is too vague to build, or contradicts itself. Comment with the questions that block the work. Open no PR.
    - **Build.** Build the issue, or its next part when it lists parts and earlier parts are merged.
-4. To build, create branch `sadr/issue-<N>` from the default branch, or `sadr/issue-<N>-<part>` for one part, with the branch commands in the worker brief. If the branch exists, continue it. Build the change as references/design.md says, with tests. The cooldown, pinning, scanner and green rules apply here too.
+4. To build, create branch `sadr/issue-<N>` from the default branch, or `sadr/issue-<N>-<part>` for one part, with the branch commands in the worker brief. If the branch exists, continue it. Build the change as references/design.md says, with tests. The cooldown, pinning, scanner, verification and green rules apply here too.
 5. Run the secrets check and publish. Open one PR, as references/pr-format.md says. Its first section says `Closes #<N>.`, or `Part of #<N>.` for one part.
 6. Apply references/merging.md with the setting for issue PRs.
 
@@ -267,6 +267,7 @@ Pass each `--org`, `--user` and `--repo` of step 1, and the `repos.py` output as
 - each PR that waits for a maintainer, and how long it has waited
 - each "Needs you" item, grouped by repo, including the items of repos that got no PR
 - each gap for the whole owner account, from the workers' `account_gaps`, once
+- each commit that GitHub did not verify, from the workers' `unverified_commits`
 - each worker's `policy_notes`
 
 Local run: write the report to a scratch directory and give the user its path. Nothing reads it back. GitHub Actions: append it to `$GITHUB_STEP_SUMMARY`.
