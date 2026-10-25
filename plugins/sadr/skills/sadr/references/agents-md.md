@@ -122,7 +122,7 @@ The PR lists each fact under its `## AGENTS.md` section, so that a maintainer re
 
 Every run that learns a fact about a repo writes it in the facts PR: branch `sadr/facts`, title `sadr: AGENTS.md facts YYYY-MM-DD`, as references/pr-format.md says. Always write the facts. Never only list them in the run report. A run that learns nothing new opens no facts PR.
 
-The facts PR holds every AGENTS.md change of the run, including each `### Holds` entry that Sadr proposes, such as a maintainer test. No other Sadr PR changes AGENTS.md. The facts PR depends on no other PR, and no other PR depends on it.
+The facts PR holds every AGENTS.md change of the run, including each `### Holds` entry that Sadr proposes, such as a maintainer test. No other Sadr PR changes AGENTS.md. The upkeep and issue workers return the facts they learn, and the facts worker runs after them and writes those facts with its own, as step 4 of SKILL.md says. The facts PR depends on no other PR for its merge, and no other PR depends on it.
 
 ## Creating AGENTS.md
 

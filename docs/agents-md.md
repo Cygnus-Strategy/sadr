@@ -55,7 +55,7 @@ When Sadr has to discover a fact that the section would have told it, and it che
 
 The PR lists each fact under its `## AGENTS.md` section, so a maintainer reviews it like any other change.
 
-Every run that learns something opens or updates one facts PR, on branch `sadr/facts`, titled `sadr: AGENTS.md facts YYYY-MM-DD`. It carries every AGENTS.md change of the run, including any `### Holds` entry Sadr proposes. No other Sadr PR touches AGENTS.md, so Sadr's PRs never conflict there. The facts PR depends on no other PR. A run that learns nothing opens none.
+Every run that learns something opens or updates one facts PR, on branch `sadr/facts`, titled `sadr: AGENTS.md facts YYYY-MM-DD`. It carries every AGENTS.md change of the run, including any `### Holds` entry Sadr proposes. No other Sadr PR touches AGENTS.md, so Sadr's PRs never conflict there. Sadr writes the facts PR last in each run, after its upkeep and issue work, so a fact that work learned lands in the same run's facts PR. The facts PR depends on no other PR for its merge. A run that learns nothing opens none.
 
 When the repo has no AGENTS.md, the facts PR creates one with a title and the `## Sadr` section only. When the repo has a CLAUDE.md that does not import AGENTS.md yet, the PR adds `@AGENTS.md` as its first line. Sadr never creates a CLAUDE.md.
 

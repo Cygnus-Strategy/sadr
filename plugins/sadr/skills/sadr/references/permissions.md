@@ -105,7 +105,7 @@ A repo that builds against another repo declares it in `### Related repos`, as r
 5. Record in the PR's `## Verification` which commit of each related repo the build used.
 6. When the repo is done, remove the worktree with `git -C CLONE worktree remove --force PATH`.
 
-The declared path must stay inside the worker's own workspace. A local worker's workspace is `${XDG_CACHE_HOME:-$HOME/.cache}/sadr/work/OWNER/NAME/`, and the repo's checkout is `NAME/` inside it, so `../field-ui` lands in that workspace. In GitHub Actions, the parent folder of the checkout is the workspace. A path that leaves the workspace goes under "Needs you".
+The declared path must stay inside the worker's own workspace. Each worker's workspace is `sadr-ROLE/` inside the repo's workspace, with its worktree of the repo at `NAME/` inside it, as step 4 of SKILL.md says. So `../field-ui` lands in that worker's own workspace, and workers that run at the same time never share it. A path that leaves the workspace goes under "Needs you".
 
 When a related repo is unreachable, the build that needs it cannot run. Report under "Needs you" which repo, and what to grant: install the App on it, or make it readable. Under `## Not done or not checked`, say which checks did not run. Never skip the report in silence, and never fall back to a stale copy.
 
