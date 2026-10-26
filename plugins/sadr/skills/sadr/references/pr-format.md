@@ -17,7 +17,7 @@ Write every PR body with the rules in references/writing.md.
 
 - A run with nothing to do in a repo opens no PR and posts no comment. The run report lists the repo as "nothing to do".
 - Each kind is its own branch off the default branch. No PR depends on another, so a maintainer can merge them in any order.
-- Only the facts PR changes AGENTS.md.
+- Only the facts PR changes AGENTS.md. Its worker runs last in the run, so it carries the facts that the upkeep and issue workers of the same run learned.
 - A repo has at most one open facts PR and one open upkeep PR. A later run adds commits to it and rewrites its body. The date in the title is the date of the latest run.
 - A repo has at most one open issue PR for each issue, or for each part of a multi-part issue.
 - Never force-push a Sadr branch.
@@ -55,7 +55,7 @@ Write every section in every PR. When a section has nothing to report, write `- 
 - honored: <each ### Holds entry or Settings line that kept Sadr from a change>
 
 ## AGENTS.md
-- <in a facts PR, each fact that Sadr wrote into the ## Sadr section. In another PR, "None." or a link to the facts PR>
+- <in a facts PR, each fact that Sadr wrote into the ## Sadr section, with the PR it came from. In another PR, the facts it found, with a link to the facts PR, or "None.">
 
 ## Merging
 - auto-merge: <the level for this kind of PR> (<repo Settings, owner Settings in OWNER/.github, or Sadr default, from setting_source in merge_guard.py>, <kind> PRs)
@@ -115,10 +115,11 @@ Do not wrap lines at a fixed width. Write each paragraph as one line, and each b
   - a resolved item. Drop it on the next run.
   - a gap for the whole owner account, such as Semgrep Secrets turned off or an App permission that the install lacks. It goes once in the run report, never in any PR section.
   - a remark about AGENTS.md and other Sadr PRs. Only the facts PR changes AGENTS.md, so there is nothing to resolve.
+  - a fact for AGENTS.md, or a request to add one. The worker returns the fact, and the same run's facts PR writes it.
   - a commit's signature state. `commit.py` reports a commit that GitHub did not verify. That goes in the run report.
 
   A cooldown exception is one line: `Review the cooldown exception for certifi 2026.10.19 (GHSA-xxxx-xxxx-xxxx). Sadr lifts the cap after 2026-10-27T02:24Z.`
-- **Run** is written by the coordinator, not by a worker, from the time and spend that the coordinator measured. In GitHub Actions, the one session does both jobs. When the spend is unknown, write `spend not reported`. Never write a guessed number or `US$0`.
+- **Run** is written by the coordinator, not by a worker, from the time and spend that the coordinator measured. In GitHub Actions, the job's session is the coordinator. When the spend is unknown, write `spend not reported`. Never write a guessed number or `US$0`.
 - **Not done or not checked** names each check that Sadr could not run on the host, and says exactly what and why, for example `The iOS UI tests need macOS. The runner is Linux.` It also names a risk that the reviewer must know. It never holds:
   - a check that Sadr could have run. Build the development environment and run it, as "Verification" in references/policy.md says.
   - an expected float, such as an image tag that floats inside its digest pin or the `ubuntu-latest` runner label. List floats only when Settings ask for them.

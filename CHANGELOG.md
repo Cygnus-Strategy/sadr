@@ -14,6 +14,10 @@ adopter's repos. So each release lists its policy changes:
 
 - USAGE.md, a short guide to running Sadr, handing it issues and letting it merge. The README keeps what Sadr is and how to install it.
 
+### Changed
+
+- Sadr writes the facts PR last. For each repo, the upkeep worker and one worker for each issue run at the same time, each in its own worktree. When they have all returned, a facts worker writes every fact they learned into the facts PR. Before, one worker did upkeep, facts and issues in turn, and a fact that came up after the facts branch was written ended up as a "Needs you" item asking a maintainer to add it. In GitHub Actions, each repo's session now coordinates these workers instead of doing the work itself.
+
 ### Fixed
 
 - A `Sadr: off` line in the owner's `.github` repo opts out that repo only. `repos.py` leaves it out of the owner's defaults, so other repos never read it as their own.
