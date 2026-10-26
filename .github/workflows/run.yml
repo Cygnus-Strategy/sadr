@@ -158,7 +158,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      - uses: anthropics/claude-code-action@a26b07d8c778b0c43f64618e5fd29fd0f8af72e8 # v1.0.250
+      - uses: anthropics/claude-code-action@f27be6b65a4652f08a2ba3cff79114829b588967 # v1.0.252
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.semgrep_app_token }}
           SADR_APP_TOKEN: ${{ steps.app.outputs.app-token }}
