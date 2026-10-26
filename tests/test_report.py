@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import shutil
 import tempfile
 import unittest
 from unittest import mock
@@ -174,8 +175,27 @@ class SearchTest(unittest.TestCase):
                 self.assertEqual(len(json.load(f)), 3)
 
 
+def dated_bodies(test_class, name):
+    """Copy fixtures/NAME to a temporary folder with every file dated NOW.
+
+    read_bodies dates a preview body by its file time, and a checkout sets
+    that to the time of the checkout. A run writes its bodies on its own day.
+    """
+    folder = tempfile.mkdtemp()
+    test_class.addClassCleanup(shutil.rmtree, folder)
+    copy = os.path.join(folder, name)
+    shutil.copytree(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", name), copy)
+    stamp = NOW.timestamp()
+    for root, _, files in os.walk(copy):
+        for f in files:
+            os.utime(os.path.join(root, f), (stamp, stamp))
+    return copy
+
+
 class PreviewTest(unittest.TestCase):
-    BODIES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "bodies")
+    @classmethod
+    def setUpClass(cls):
+        cls.BODIES = dated_bodies(cls, "bodies")
 
     def test_read_bodies(self):
         nodes, comments, notes, problems = report.read_bodies(self.BODIES)
@@ -225,7 +245,9 @@ class PreviewTest(unittest.TestCase):
 
 
 class PreviewKindsTest(unittest.TestCase):
-    BODIES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "bodies2")
+    @classmethod
+    def setUpClass(cls):
+        cls.BODIES = dated_bodies(cls, "bodies2")
 
     def read(self, scope=frozenset({"acme"})):
         return report.read_bodies(self.BODIES, scope)
