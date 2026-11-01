@@ -316,6 +316,7 @@ These notes are examples from earlier runs. They do not limit what Sadr handles.
 - Poetry 2.4 and later reads `min-release-age` in days under `[solver]` in `poetry.toml`.
 - A bare `requirements.txt` with pip has no usable cooldown. Move it to `pyproject.toml` with a lockfile, unless AGENTS.md says not to.
 - `astral-sh/setup-uv` without an exact `version:` installs the newest uv. Pin it.
+- `uv python install` can lack a CPython patch release that `actions/setup-python` already ships. When it does, run the local tests on the newest patch of the same line that uv has, and say under `## Verification` which version CI runs.
 - When Python moves, update `.python-version`, `requires-python`, the Dockerfile, CI `python-version`, and the targets of ruff and mypy.
 
 **Go, Rust, Swift and others without a cooldown setting**
