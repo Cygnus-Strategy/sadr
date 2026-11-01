@@ -208,12 +208,12 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(len(api.calls), 2)
 
     def test_main_exit_codes_and_json_before_subcommand(self):
-        with mock.patch.object(_gh, "api", FakeApi(tag_routes())), \
+        with mock.patch.object(_gh, "api", FakeApi(tag_routes())), mock.patch.object(_gh, "now", lambda: NOW), \
                 mock.patch.object(_registry, "Client", registry), mock.patch("sys.stdout", io.StringIO()) as out:
             self.assertEqual(pins.main(["check", WORKFLOW]), 1)
         self.assertIn("9 pins checked, 6 with problems, 0 not checked, 1 skipped.", out.getvalue())
         self.assertIn("skipped, local action", out.getvalue())
-        with mock.patch.object(_gh, "api", FakeApi(tag_routes())), \
+        with mock.patch.object(_gh, "api", FakeApi(tag_routes())), mock.patch.object(_gh, "now", lambda: NOW), \
                 mock.patch.object(_registry, "Client", registry), mock.patch("sys.stdout", io.StringIO()) as out:
             self.assertEqual(pins.main(["--json", "check", WORKFLOW]), 1)
         data = json.loads(out.getvalue())
