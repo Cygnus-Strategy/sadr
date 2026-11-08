@@ -274,6 +274,9 @@ jobs:
           owner: ${{ inputs.owner || github.repository_owner }}
           permission-contents: read
           permission-pull-requests: read
+          # The search reads each PR's check status. A private repo needs these to show it.
+          permission-checks: read
+          permission-statuses: read
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
