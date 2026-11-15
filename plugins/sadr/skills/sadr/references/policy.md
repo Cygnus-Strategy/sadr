@@ -189,6 +189,20 @@ When a dependency does not support the newest line yet, step back one line at a 
 
 Never raise an app's minimum operating system or deployment target. That drops users, and it is a product decision. Suggest it under "Needs you" instead. The same applies to platform compatibility dates that change runtime behavior. Move one only when it is more than three months old, never past the newest date that the locked runtime supports, and run the tests after.
 
+### End of life means unsupported
+
+A language, runtime, framework, toolchain or package line past its end of life gets no security fixes. Sadr treats it as unsupported in every repo:
+
+- **Floors move above end of life.** Every minimum version that the repo declares must be a line that is still supported at the time of the run. That covers `requires-python`, `engines`, the `go` directive, `rust-version`, a gem or podspec's required version, a manifest floor such as `django>=3.2`, a "requires X or later" line in the README, AGENTS.md or a contributing guide, and the oldest leg of a CI matrix. Raise each floor that names an end-of-life line to the oldest line that is still supported.
+- **CI tests no end-of-life line.** Replace an end-of-life matrix leg with the newest release of the oldest supported line, at least the cooldown age old. A matrix that tests "the oldest and the newest supported" keeps that shape, one line up.
+- **Name matrix legs by role, not version.** When a required status check carries a version, such as `test (3.10.22)`, every version bump renames the check and the branch's ruleset waits for a check that never runs. Name such a leg by its role, for example `test (oldest)` and `test (newest)`, and put the version in the matrix. When the repo already requires the old name, put the ruleset change under "Needs you". Sadr never changes a ruleset.
+- **The project's own schedule decides.** Take end-of-life dates from the project's own release or support policy, such as the Python Developer's Guide, the Node.js release schedule or the Go release policy. `https://endoflife.date/api/PRODUCT.json` is a convenient index. Check what it says against the project when the two could differ.
+- **Code that existed only for the old line goes.** Remove a compatibility shim, a backport dependency or a version check that only an end-of-life line needed, in the same commit, when the tests cover it.
+
+A published library that drops a line changes what its users can install. Note the dropped line in the repo's changelog, where it keeps one, and in the PR.
+
+The rule does not reach an app's minimum operating system or deployment target. That stays a product decision, as above. When such a target is past its end of life, put it under "Needs you". A repo that keeps an end-of-life line on purpose records it in `### Holds` with its reason. Sadr honors the hold and lists it under "Needs you" on every run, so that it is never forgotten.
+
 ## 3. Dependencies
 
 Every direct dependency moves to its newest release, majors included. Then regenerate the lockfile so that transitive dependencies move too.

@@ -22,7 +22,7 @@ again.
 
 ## Run the tests
 
-The tests need Python 3.10 or later and no other packages:
+The tests need Python 3.11 or later and no other packages:
 
 ```
 python3 -m unittest discover tests

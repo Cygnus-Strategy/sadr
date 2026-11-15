@@ -153,8 +153,6 @@ def tag_date(repo, tag):
 def parse_time(ts):
     """Parse an ISO 8601 time into an aware datetime. A naive time is UTC."""
     ts = ts.strip().replace("Z", "+00:00").replace(" ", "T", 1)
-    # Python 3.10 parses at most 6 digits of fractional seconds.
-    ts = re.sub(r"(\.\d{6})\d+", r"\1", ts)
     t = datetime.datetime.fromisoformat(ts)
     return t if t.tzinfo else t.replace(tzinfo=datetime.timezone.utc)
 

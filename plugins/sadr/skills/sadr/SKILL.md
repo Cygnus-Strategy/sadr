@@ -41,7 +41,7 @@ Read these files in full before every run. Each worker reads them too.
 
 docs/agents-md.md at the root of the Sadr repo explains the AGENTS.md conventions to adopters. A run does not need it. This file and references/ hold every rule a run uses.
 
-Paths in this file are relative to this skill's directory. Scripts are in `scripts/`. Each script needs Python 3.10 or later and accepts `--json`. A script exits nonzero when GitHub returns an empty result that it cannot confirm. Treat that as an error for the repo, not as "nothing found".
+Paths in this file are relative to this skill's directory. Scripts are in `scripts/`. Each script needs Python 3.11 or later and accepts `--json`. A script exits nonzero when GitHub returns an empty result that it cannot confirm. Treat that as an error for the repo, not as "nothing found".
 
 ## Modes
 
