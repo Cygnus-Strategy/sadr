@@ -316,6 +316,7 @@ These notes are examples from earlier runs. They do not limit what Sadr handles.
 - Poetry 2.4 and later reads `min-release-age` in days under `[solver]` in `poetry.toml`.
 - A bare `requirements.txt` with pip has no usable cooldown. Move it to `pyproject.toml` with a lockfile, unless AGENTS.md says not to.
 - `astral-sh/setup-uv` without an exact `version:` installs the newest uv. Pin it.
+- `uv python install` can lack a CPython patch release that `actions/setup-python` already ships. When it does, run the local tests on the newest patch of the same line that uv has, and say under `## Verification` which version CI runs.
 - When Python moves, update `.python-version`, `requires-python`, the Dockerfile, CI `python-version`, and the targets of ruff and mypy.
 
 **Go, Rust, Swift and others without a cooldown setting**
@@ -336,5 +337,6 @@ These notes are examples from earlier runs. They do not limit what Sadr handles.
 
 - Dependabot reads `cooldown:` with `default-days: 7` on each `updates` entry. Renovate reads `"minimumReleaseAge": "7 days"`.
 - Semgrep's `github-actions-mutable-action-tag` rule flags a tag pin. Fix the pin. Do not triage the finding.
+- Some actions publish releases with empty notes, such as `anthropics/claude-code-action`. Then diff the `action.yml` at the old and the new SHA to check for changed inputs.
 - Cloudflare Workers Builds ships its own npm and ignores `min-release-age`. Configure it in the Cloudflare dashboard and list it under "Needs you".
 - `apt-get install` and `brew install` on hosted runners take whatever the runner image's package index holds, outside every cooldown. So does a `-latest` runner label, which moves to a new OS image. Neither can be pinned by digest. Keep the repo's runner label. These floats are expected, and so is an image tag that floats inside its digest pin. Do not list them in the PR unless Settings ask for them. The same applies to MSYS2 on Windows runners.
