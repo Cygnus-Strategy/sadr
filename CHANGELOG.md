@@ -16,6 +16,8 @@ adopter's repos. So each release lists its policy changes:
 
 ### Changed
 
+- A new rule: end of life means unsupported. Every minimum version a repo declares, for a language, runtime, framework, toolchain or package, must be a line that is still supported. Sadr raises each floor that names an end-of-life line, replaces end-of-life CI matrix legs with the oldest supported line, and names version matrix legs by role so that required checks keep their names. An app's minimum operating system stays a product decision.
+- The scripts and tests need Python 3.11 or later. Python 3.10 reached its end of life on 2026-10-01.
 - Sadr writes the facts PR last. For each repo, the upkeep worker and one worker for each issue run at the same time, each in its own worktree. When they have all returned, a facts worker writes every fact they learned into the facts PR. Before, one worker did upkeep, facts and issues in turn, and a fact that came up after the facts branch was written ended up as a "Needs you" item asking a maintainer to add it. In GitHub Actions, each repo's session now coordinates these workers instead of doing the work itself.
 
 ### Fixed
