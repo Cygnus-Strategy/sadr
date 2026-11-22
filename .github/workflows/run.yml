@@ -158,7 +158,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      - uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.269
+      - uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.semgrep_app_token }}
           SADR_APP_TOKEN: ${{ steps.app.outputs.app-token }}
@@ -174,10 +174,12 @@ jobs:
             Run the sadr skill on this repository${{ inputs.preview && ' as a preview' || '' }}.
             The output of repos.py for this run is in ${{ runner.temp }}/sadr-run/repos.json.
           # The run must build and test, so it needs the shell and the edit tools.
+          # Since v1.0.273 the action starts in auto mode. The default mode keeps --allowedTools strict.
           claude_args: >-
             --model ${{ inputs.model }}
             --max-budget-usd ${{ inputs.max-spend-usd }}
             --allowedTools Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,Skill,Agent,TodoWrite
+            --permission-mode default
           github_token: ${{ steps.app.outputs.app-token || github.token }}
           bot_name: ${{ steps.app.outputs.bot-name || 'github-actions[bot]' }}
           bot_id: ${{ steps.app.outputs.bot-id || '41898282' }}
