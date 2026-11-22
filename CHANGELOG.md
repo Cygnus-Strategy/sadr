@@ -27,6 +27,8 @@ adopter's repos. So each release lists its policy changes:
 - Sadr marks its draft PRs ready. When a repo asks for drafts, Sadr waits for the PR's checks and marks it ready when they pass, and each run readies any of its drafts that turned green later. Before, its drafts stayed drafts.
 - A Known traps line in policy.md says how to verify locally when `uv python install` lacks a CPython patch release that `actions/setup-python` already ships.
 - A Known traps line in policy.md says how to check an action's inputs when its release notes are empty.
+- A Known traps line in policy.md says how to keep `--allowedTools` strict in `anthropics/claude-code-action` v1.0.273 and later.
+- A Known traps line in policy.md says how to claim a repo when `commit.py` has no commits to publish.
 
 ## v2.0.0 (2026-10-23)
 
